@@ -1,0 +1,2 @@
+## Time series forecasting MLOPS Workflow
+In this project I will implement a fully automated Machine Learning workflow, including feature engineering, model training, hyperparameter tunning, model selection, model registry and industrialization.
