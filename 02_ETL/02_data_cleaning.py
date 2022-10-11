@@ -1,6 +1,10 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC ### Data cleaning
+# MAGIC ## Data cleaning
+# MAGIC 
+# MAGIC **Objective**: This notebook's objective is to load the raw dataset and perform cleaning on it.
+# MAGIC 
+# MAGIC **Takeaways**:
 
 # COMMAND ----------
 
@@ -26,7 +30,7 @@ display(temperatures_sdf)
 
 # COMMAND ----------
 
-df.printSchema()
+temperatures_sdf.printSchema()
 
 # COMMAND ----------
 
