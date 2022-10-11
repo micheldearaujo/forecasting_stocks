@@ -9,15 +9,21 @@
 
 # COMMAND ----------
 
+!pip install statsmodels
+!pip install pmdarima
+!pip install xgboost
+
+# COMMAND ----------
+
 import pyspark
 from pyspark import SparkFiles
+import pyspark.sql.functions as F
 
 import numpy as np
 import pandas as pd
 import os
-
-!pip install statsmodels
-!pip install pmdarima
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Time Series Libraries
 from statsmodels.tsa.arima.model import ARIMA
@@ -29,8 +35,7 @@ from pmdarima.arima.utils import ndiffs  # Testes para saber o número de difere
 from statsmodels.tools.eval_measures import rmse, aic
 from statsmodels.tsa.stattools import grangercausalitytests
 from pmdarima.arima.utils import ndiffs 
-from scipy import stats
-from scipy.special import boxcox, inv_boxcox
+from statsmodels.tsa.seasonal import seasonal_decompose
 
 # Classical Machine Learning Libraries
 from xgboost import XGBRegressor
@@ -38,11 +43,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_squared_log_error
-#from sklearn.metrics import mean_absolute_percentage_error
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import r2_score
-#from pycaret.regression import *
-from bayes_opt import BayesianOptimization
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.model_selection import cross_val_score
 
@@ -51,6 +53,7 @@ import matplotlib.dates as mdates
 from matplotlib.dates import DateFormatter
 from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
+plt.style.use("fivethirtyeight")
 
 
 
