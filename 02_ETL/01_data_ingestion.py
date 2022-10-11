@@ -6,7 +6,22 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ### 1.0 Imports
+
+# COMMAND ----------
+
 # MAGIC %run ../01_CONFIG/utils
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### 2.0 Download the Minimum Temperatures dataset
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### 2.1 Download the dataset from the Web
 
 # COMMAND ----------
 
@@ -19,11 +34,21 @@ temperatures_sdf = (spark
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC #### 2.2 Create a folder within the DBFS
+
+# COMMAND ----------
+
 if os.path.exists(DATA_PATH):
     print("Path Already Exists")
 else:
     print("Creating Data Path")
     os.mkdir(DATA_PATH)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### 2.3 Save the file as CSV in the DBFS
 
 # COMMAND ----------
 
