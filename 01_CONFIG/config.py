@@ -35,6 +35,7 @@ from pmdarima.arima.utils import ndiffs  # Testes para saber o número de difere
 from statsmodels.tools.eval_measures import rmse, aic
 from statsmodels.tsa.stattools import grangercausalitytests
 from pmdarima.arima.utils import ndiffs 
+from pmdarima.arima import auto_arima
 from statsmodels.tsa.seasonal import seasonal_decompose
 
 # Classical Machine Learning Libraries
@@ -42,7 +43,8 @@ from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import mean_squared_error
-from sklearn.metrics import mean_squared_log_error
+from sklearn.metrics import mean_absolute_percentage_error
+
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import r2_score
 from sklearn.model_selection import TimeSeriesSplit
@@ -56,6 +58,7 @@ register_matplotlib_converters()
 plt.style.use("fivethirtyeight")
 
 
+import mlflo
 
 # COMMAND ----------
 
@@ -69,6 +72,10 @@ URL_DATASET_NAME = 'daily-min-temperatures.csv'
 DATA_PATH = '/tmp/data'
 RAW_DATASET_NAME = 'raw_temperatures.csv'
 INTERIM_DATASET_NAME = 'interim_temperatures.csv'
+
+# COMMAND ----------
+
+forecast_horizon = 18
 
 # COMMAND ----------
 
