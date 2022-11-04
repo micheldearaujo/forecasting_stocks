@@ -9,8 +9,7 @@
 
 # COMMAND ----------
 
-!pip install statsmodels
-!pip install pmdarima
+!pip install sklearn
 !pip install xgboost
 
 # COMMAND ----------
@@ -57,8 +56,12 @@ from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
 plt.style.use("fivethirtyeight")
 
+from hyperopt import fmin, tpe, Trials, hp, SparkTrials, space_eval, STATUS_OK, rand, Trials
+import mlflow
+import mlflow.spark
 
-import mlflo
+!pip install lightgbm
+from lightgbm import LGBMRegressor
 
 # COMMAND ----------
 
@@ -67,16 +70,91 @@ import mlflo
 
 # COMMAND ----------
 
-DATASET_URL = 'https://raw.githubusercontent.com/jbrownlee/Datasets/master/daily-min-temperatures.csv'
-URL_DATASET_NAME = 'daily-min-temperatures.csv'
-DATA_PATH = '/tmp/data'
-RAW_DATASET_NAME = 'raw_temperatures.csv'
-INTERIM_DATASET_NAME = 'interim_temperatures.csv'
+model_config = {
+    'NUMBER_OF_STD_TO_KEEP_OUTLIERS': 2,
+    'TARGET_VARIABLE': 'LOG_TOTAL_PROCESSING_TIME',
+    'TEST_SIZE_TEST': 0.2,
+    'TEST_SIZE_VAL': 0.5,
+}
+
+etr_model_config = {
+    'CRITERION': 'mse',
+    'MAX_DEPTH': 60,
+    'MIN_SAMPLES_LEAF': 2,
+    'MIN_SAMPLES_SPLIT': 3,
+    'N_ESTIMATORS': 400,    
+}
+
+lgbm_model_config = {
+    'BOOSTING_TYPE': 'goss',
+    'LEARNING_RATE': 0.15,
+    'MAX_DEPTH': 40,
+    'MIN_DATA': 100,
+    'N_ESTIMATORS': 200,
+    'NUM_LEAVES': 250,
+    'REG_LAMBDA': 1,
+    'SCALE_POS_WEIGHT': 1,
+    'SEED': 42,
+    'SUBSAMPLE': 0.9,
+    'COLSAMPLE_BYTREE': 1.0,
+    'VERBOSE': 20,
+    'NUM_BOOST_ROUND': 300
+}
+
+lgbm_fixed_model_config = {
+    'LEARNING_RATE': 0.11,
+    'MIN_DATA': 100,
+    'SEED': 42,
+    'SUBSAMPLE': 0.9,
+    'VERBOSE': 20,
+    'NUM_ITERATIONS': 200
+}
+
+xgboost_model_config = {
+    'LEARNING_RATE': 0.01,
+    'MAX_DEPTH': 100,
+    'MIN_DATA': 100,
+    'N_ESTIMATORS': 1000,
+    'REG_LAMBDA': 100,
+    'SCALE_POS_WEIGHT': 10,
+    'SEED': 42,
+    'SUBSAMPLE': 0.9,
+    'COLSAMPLE_BYTREE': 0.9,
+    'NUM_BOOST_ROUNDS': 200,
+    'GAMMA': 0.01
+}
+
+xgboost_fixed_model_config = {
+    'SEED': 42,
+    'SUBSAMPLE': 0.95
+}
 
 # COMMAND ----------
 
-forecast_horizon = 18
+etr_hyperparameter_config = {
+    'n_estimators':hp.choice('n_estimators',[80, 140, 150, 180, 200, 250, 300]),
+    'max_depth':hp.choice('max_depth',[2, 10, 15, 30, 50, 100]),          
+    'min_samples_split':hp.choice('min_samples_split',[3, 7, 9, 12, 15]),  
+    'min_samples_leaf':hp.choice('min_samples_leaf',[2, 4, 5, 8, 12]),
+    'criterion':hp.choice('criterion', ['mse'])
+}
 
-# COMMAND ----------
+lightgbm_hyperparameter_config = {
+    'num_leaves':hp.choice('num_leaves',[100, 240, 245, 250, 255]),
+    'colsample_bytree': hp.uniform('colsample_bytree', 0.3, 1.0),
+    'n_estimators':hp.choice('n_estimators',[280, 290, 300, 310, 320]),
+    'boosting_type':hp.choice('boosting_type',['dart', 'goss']),
+    'max_depth':hp.choice('max_depth',[38, 40, 42]),
+    'reg_lambda':hp.choice('reg_lambda',[0, 1, 2, 3]),
+    'scale_pos_weight':hp.choice('scale_pos_weight',[1, 2, 3, 4]),
+}
 
-
+xgboost_hyperparameter_config = {
+    'max_depth': hp.choice('max_depth', [9, 11, 30]),
+    'learning_rate': hp.choice('learning_rate', [0.01, 0.1, 0.5, 1.0]),
+    'gamma': hp.choice('gamma', [0.01, 0.1, 1.0]),
+    'reg_lambda': hp.choice('reg_lambda', [1, 10, 30, 100]),
+    'n_estimators': hp.choice('n_estimators', [40, 200, 300]),
+    'scale_pos_weight': hp.choice('scale_pos_weight', [2, 5, 8, 10]),
+    'colsample_bytree': hp.uniform('colsample_bytree', 0.3, 1.0),
+}
