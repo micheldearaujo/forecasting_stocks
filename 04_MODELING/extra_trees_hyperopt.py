@@ -21,7 +21,11 @@ TARGET_VARIABLE = 'Weight'
 
 # COMMAND ----------
 
-RUN_NAME = 'LightGBM_Hyperopt'
+RUN_NAME = 'ExtraTrees_Hyperopt'
+
+# COMMAND ----------
+
+from sklearn.ensemble import ExtraTreesRegressor
 
 # COMMAND ----------
 
@@ -56,20 +60,13 @@ X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size=0.5, r
 
 def objective(search_space):
     
-    model = LGBMRegressor(
-        learning_rate= lgbm_fixed_model_config['LEARNING_RATE'],
-        min_data = lgbm_fixed_model_config['MIN_DATA'],
-        subsample = lgbm_fixed_model_config['SUBSAMPLE'],
-        num_iterations = lgbm_fixed_model_config['NUM_ITERATIONS'],
-        seed = lgbm_fixed_model_config['SEED'],
+    model = ExtraTreesRegressor(
+        random_state=42,
         **search_space
     )
     model.fit(
         X_train,
-        y_train,
-        early_stopping_rounds = 200,
-        eval_metric = ['rmse'],
-        eval_set=[[X_train, y_train],[X_test, y_test]]
+        y_train
     )
     
     y_pred = model.predict(X_val)
@@ -79,7 +76,7 @@ def objective(search_space):
 
 # COMMAND ----------
 
-search_space = lightgbm_hyperparameter_config
+search_space = etr_hyperparameter_config
 
 algorithm = tpe.suggest
 
@@ -98,11 +95,11 @@ with mlflow.start_run(run_name=RUN_NAME):
 
 # COMMAND ----------
 
-lightgbm_best_param_names = space_eval(search_space, best_params)
+etr_best_param_names = space_eval(search_space, best_params)
 
 # COMMAND ----------
 
-lightgbm_best_param_names
+etr_best_param_names
 
 # COMMAND ----------
 
@@ -113,55 +110,38 @@ lightgbm_best_param_names
 
 with mlflow.start_run(run_name = RUN_NAME) as run:
     
-    learning_rate= lgbm_fixed_model_config['LEARNING_RATE'],
-    min_data = lgbm_fixed_model_config['MIN_DATA'],
-    subsample = lgbm_fixed_model_config['SUBSAMPLE'],
-    num_iterations = lgbm_fixed_model_config['NUM_ITERATIONS'],
-    seed = lgbm_fixed_model_config['SEED'],
-
+    seed = xgboost_model_config['SEED']
+    subsample = xgboost_model_config['SUBSAMPLE']
+    
     # Getting the best parameters configuration
     try:
-        boosting_type= lightgbm_best_param_names['boosting_type'],
-        max_depth = lightgbm_best_param_names['max_depth'],
-        colsample_bytree = lightgbm_best_param_names['colsample_bytree'],
-        n_estimators = lightgbm_best_param_names['n_estimators'],
-        num_leaves = lightgbm_best_param_names['num_leaves'],
-        reg_lambda = lightgbm_best_param_names['reg_lambda'],
-        scale_pos_weight = lightgbm_best_param_names['scale_pos_weight']
+        criterion = etr_best_param_names['criterion']
+        n_estimators = etr_best_param_names['n_estimators']
+        max_depth = etr_best_param_names['max_depth']
+        min_samples_leaf = etr_best_param_names['min_samples_leaf']
+        min_samples_split = etr_best_param_names['min_samples_split']
         
     # If something goes wrong, select the pre-selected parameters in the config file
     except:
-        boosting_type= lgbm_model_config['boosting_type'],
-        max_depth = lgbm_model_config['max_depth'],
-        colsample_bytree = lgbm_model_config['colsample_bytree'],
-        n_estimators = lgbm_model_config['n_estimators'],
-        num_leaves = lgbm_model_config['num_leaves'],
-        reg_lambda = lgbm_model_config['reg_lambda'],
-        scale_pos_weight = lgbm_model_config['scale_pos_weight']
+        criterion = etr_hyperparameter_config['criterion']
+        n_estimators = etr_hyperparameter_config['n_estimators']
+        max_depth = etr_hyperparameter_config['max_depth']
+        min_samples_leaf = etr_hyperparameter_config['min_samples_leaf']
+        min_samples_split = etr_hyperparameter_config['min_samples_split']
 
     # Create the model instance if the selected parameters
-    model = LGBMRegressor(
-        boosting_type = boosting_type,
-        learning_rate = learning_rate,
+    model = ExtraTreesRegressor(
+        criterion = criterion,
         max_depth = max_depth,
-        reg_lambda = reg_lambda,
         n_estimators = n_estimators,
-        num_leaves = num_leaves,
-        scale_pos_weight = scale_pos_weight,
-        colsample_bytree = colsample_bytree,
-        seed = seed,
-        subsample = subsample,
-        num_iterations = num_iterations,
-        num_boosting_rounds=n_estimators
+        min_samples_leaf = min_samples_leaf,
+        min_samples_split = min_samples_split,
     )
 
     # Training the model
     model_fit = model.fit(
         X=X_train,
         y=y_train,
-        early_stopping_rounds=100,
-        eval_metric= ['mape'],
-        eval_set =[(X_train, y_train), (X_test, y_test)]
     )
 
     ### Perform Predictions
@@ -169,17 +149,12 @@ with mlflow.start_run(run_name = RUN_NAME) as run:
     predictions = model_fit.predict(X_val)
 
     ### Log the metrics
-    
-    mlflow.log_param("boosting_type", boosting_type)
-    mlflow.log_param("learning_rate", learning_rate)
+
+    mlflow.log_param("criterion", criterion)
     mlflow.log_param("max_depth", max_depth)
-    mlflow.log_param("min_data", min_data)
     mlflow.log_param("n_estimators", n_estimators)
-    mlflow.log_param("reg_lambda", reg_lambda)
-    mlflow.log_param("num_leaves", num_leaves)
-    mlflow.log_param("scale_pos_weight", scale_pos_weight)
-    mlflow.log_param("colsample_bytree", colsample_bytree)
-    mlflow.log_param("num_iterations", num_iterations)
+    mlflow.log_param("min_samples_leaf", min_samples_leaf)
+    mlflow.log_param("min_samples_split", min_samples_split)
 
     # Define a metric to use to evaluate the model.
 
@@ -205,20 +180,20 @@ with mlflow.start_run(run_name = RUN_NAME) as run:
 
     fig, axs = plt.subplots(figsize=(12, 8))
     axs.scatter(x=y_val, y=predictions)
-    axs.set_title(f"XGBoost Predicted versus ground truth\n R2 = {r2} | RMSE = {rmse} | MAPE = {mape}")
+    axs.set_title(f"ETR Predicted versus ground truth\n R2 = {r2} | RMSE = {rmse} | MAPE = {mape}")
     axs.set_xlabel("True processing time")
     axs.set_ylabel("Predicted processing time")
-    plt.savefig("artefacts/scatter_plot_lightgbm.png")
+    plt.savefig("artefacts/scatter_plot_etr.png")
     fig.show()
 
-    mlflow.log_artifact("artefacts/scatter_plot_lightgbm.png")
+    mlflow.log_artifact("artefacts/scatter_plot_etr.png")
 
-    mlflow.sklearn.log_model(model_fit, "xgboost_regression")
+    mlflow.sklearn.log_model(model_fit, "etr_regression")
 
-    np.savetxt('artefacts/predictions_lightgbm.csv', predictions, delimiter=',')
+    np.savetxt('artefacts/predictions_etr.csv', predictions, delimiter=',')
 
     # Log the saved table as an artifact
-    mlflow.log_artifact("artefacts/predictions_lightgbm.csv")
+    mlflow.log_artifact("artefacts/predictions_etr.csv")
 
     # Convert the residuals to a pandas dataframe to take advantage of graphics  
     predictions_df = pd.DataFrame(data = predictions - y_val)
@@ -229,8 +204,8 @@ with mlflow.start_run(run_name = RUN_NAME) as run:
     plt.ylabel("Residual")
     plt.title("Residuals")
 
-    plt.savefig("artefacts/residuals_plot_lightgbm.png")
-    mlflow.log_artifact("artefacts/residuals_plot_lightgbm.png")
+    plt.savefig("artefacts/residuals_plot_etr.png")
+    mlflow.log_artifact("artefacts/residuals_plot_etr.png")
 
 # COMMAND ----------
 
