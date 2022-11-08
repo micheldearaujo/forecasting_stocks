@@ -102,7 +102,7 @@ lightgbm_best_param_names = space_eval(search_space, best_params)
 
 # COMMAND ----------
 
-lightgbm_best_param_names
+lightgbm_best_param_names['n_estimators']
 
 # COMMAND ----------
 
@@ -128,6 +128,7 @@ with mlflow.start_run(run_name = RUN_NAME) as run:
         num_leaves = lightgbm_best_param_names['num_leaves'],
         reg_lambda = lightgbm_best_param_names['reg_lambda'],
         scale_pos_weight = lightgbm_best_param_names['scale_pos_weight']
+        print("went here")
         
     # If something goes wrong, select the pre-selected parameters in the config file
     except:
@@ -138,8 +139,10 @@ with mlflow.start_run(run_name = RUN_NAME) as run:
         num_leaves = lgbm_model_config['num_leaves'],
         reg_lambda = lgbm_model_config['reg_lambda'],
         scale_pos_weight = lgbm_model_config['scale_pos_weight']
+        print("otherwise")
 
     # Create the model instance if the selected parameters
+    n_estimators = n_estimators[0]
     model = LGBMRegressor(
         boosting_type = boosting_type,
         learning_rate = learning_rate,
@@ -151,15 +154,14 @@ with mlflow.start_run(run_name = RUN_NAME) as run:
         colsample_bytree = colsample_bytree,
         seed = seed,
         subsample = subsample,
-        num_iterations = num_iterations,
-        num_boosting_rounds=n_estimators
+        #num_iterations = num_iterations,
     )
 
     # Training the model
     model_fit = model.fit(
         X=X_train,
         y=y_train,
-        early_stopping_rounds=100,
+        callbacks = [lgb.early_stopping(100)],
         eval_metric= ['mape'],
         eval_set =[(X_train, y_train), (X_test, y_test)]
     )
@@ -206,14 +208,14 @@ with mlflow.start_run(run_name = RUN_NAME) as run:
     fig, axs = plt.subplots(figsize=(12, 8))
     axs.scatter(x=y_val, y=predictions)
     axs.set_title(f"XGBoost Predicted versus ground truth\n R2 = {r2} | RMSE = {rmse} | MAPE = {mape}")
-    axs.set_xlabel("True processing time")
-    axs.set_ylabel("Predicted processing time")
+    axs.set_xlabel(f"True {TARGET_VARIABLE}")
+    axs.set_ylabel(f"Predicted {TARGET_VARIABLE}")
     plt.savefig("artefacts/scatter_plot_lightgbm.png")
     fig.show()
 
     mlflow.log_artifact("artefacts/scatter_plot_lightgbm.png")
 
-    mlflow.sklearn.log_model(model_fit, "xgboost_regression")
+    mlflow.sklearn.log_model(model_fit, RUN_NAME)
 
     np.savetxt('artefacts/predictions_lightgbm.csv', predictions, delimiter=',')
 

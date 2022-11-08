@@ -61,6 +61,7 @@ def objective(search_space):
         seed = xgboost_fixed_model_config['SEED'],
         **search_space
     )
+    
     model.fit(
         X_train,
         y_train,
@@ -109,7 +110,7 @@ xgboost_best_param_names
 # COMMAND ----------
 
 with mlflow.start_run(run_name = RUN_NAME) as run:
-    
+    # First define the fixed parameters
     seed = xgboost_fixed_model_config['SEED']
     subsample = xgboost_fixed_model_config['SUBSAMPLE']
     
@@ -194,14 +195,14 @@ with mlflow.start_run(run_name = RUN_NAME) as run:
     fig, axs = plt.subplots(figsize=(12, 8))
     axs.scatter(x=y_val, y=predictions)
     axs.set_title(f"XGBoost Predicted versus ground truth\n R2 = {r2} | RMSE = {rmse} | MAPE = {mape}")
-    axs.set_xlabel("True processing time")
-    axs.set_ylabel("Predicted processing time")
+    axs.set_xlabel(f"True {TARGET_VARIABLE}")
+    axs.set_ylabel(f"Predicted {TARGET_VARIABLE}")
     plt.savefig("artefacts/scatter_plot_xgboost.png")
     fig.show()
 
     mlflow.log_artifact("artefacts/scatter_plot_xgboost.png")
 
-    mlflow.sklearn.log_model(model_fit, "xgboost_regression")
+    mlflow.sklearn.log_model(model_fit, RUN_NAME)
 
     np.savetxt('artefacts/predictions_xgboost.csv', predictions, delimiter=',')
 

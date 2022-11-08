@@ -21,7 +21,7 @@ TARGET_VARIABLE = 'Weight'
 
 # COMMAND ----------
 
-RUN_NAME = 'XGBoost_Hyperopt'
+RUN_NAME = 'RandomForest_Hyperopt'
 
 # COMMAND ----------
 
@@ -56,17 +56,13 @@ X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size=0.5, r
 
 def objective(search_space):
     
-    model = XGBRegressor(
-        subsample= xgboost_fixed_model_config['SUBSAMPLE'],
-        seed = xgboost_fixed_model_config['SEED'],
+    model = RandomForestRegressor(
+        random_state = random_forest_fixed_model_config['RANDOM_STATE'],
         **search_space
     )
     model.fit(
         X_train,
-        y_train,
-        early_stopping_rounds = 200,
-        eval_metric = ['rmse'],
-        eval_set=[[X_train, y_train],[X_test, y_test]]
+        y_train
     )
     
     y_pred = model.predict(X_val)
@@ -76,7 +72,7 @@ def objective(search_space):
 
 # COMMAND ----------
 
-search_space = xgboost_hyperparameter_config
+search_space = randomforest_hyperparameter_config
 
 algorithm = tpe.suggest
 
@@ -95,11 +91,11 @@ with mlflow.start_run(run_name=RUN_NAME):
 
 # COMMAND ----------
 
-xgboost_best_param_names = space_eval(search_space, best_params)
+rf_best_param_names = space_eval(search_space, best_params)
 
 # COMMAND ----------
 
-xgboost_best_param_names
+rf_best_param_names
 
 # COMMAND ----------
 
@@ -109,50 +105,44 @@ xgboost_best_param_names
 # COMMAND ----------
 
 with mlflow.start_run(run_name = RUN_NAME) as run:
-    
-    seed = xgboost_fixed_model_config['SEED']
-    subsample = xgboost_fixed_model_config['SUBSAMPLE']
+    # First configure the fixed parameters, such as random_state
+    random_state = random_forest_fixed_model_config['RANDOM_STATE']
     
     # Getting the best parameters configuration
     try:
-        max_depth = xgboost_best_param_names['max_depth']
-        learning_rate = xgboost_best_param_names['learning_rate']
-        gamma = xgboost_best_param_names['gamma']
-        reg_lambda = xgboost_best_param_names['reg_lambda']
-        n_estimators = xgboost_best_param_names['n_estimators']
-        scale_pos_weight = xgboost_best_param_names['scale_pos_weight']
-        colsample_bytree = xgboost_best_param_names['colsample_bytree']
+        bootstrap = rf_best_param_names['bootstrap']
+        max_depth = rf_best_param_names['max_depth']
+        max_features = rf_best_param_names['max_features']
+        min_samples_leaf = rf_best_param_names['min_samples_leaf']
+        min_samples_split = rf_best_param_names['min_samples_split']
+        n_estimators = rf_best_param_names['n_estimators']
         
     # If something goes wrong, select the pre-selected parameters in the config file
     except:
-        max_depth = xgboost_hyperparameter_config['MAX_DEPTH']
-        learning_rate = xgboost_hyperparameter_config['LEARNING_RATE']
-        gamma = xgboost_hyperparameter_config['gamma']
-        reg_lambda = xgboost_hyperparameter_config['reg_lambda']
-        n_estimators = xgboost_hyperparameter_config['n_estimators']
-        scale_pos_weight = xgboost_hyperparameter_config['scale_pos_weight']
-        colsample_bytree = xgboost_hyperparameter_config['colsample_bytree']
+        bootstrap = random_forest_model_config['bootstrap']
+        max_depth = random_forest_model_config['max_depth']
+        max_features = random_forest_model_config['max_features']
+        min_samples_leaf = random_forest_model_config['min_samples_leaf']
+        min_samples_split = random_forest_model_config['min_samples_split']
+        n_estimators = random_forest_model_config['n_estimators']
+ 
+        
 
     # Create the model instance if the selected parameters
     model = XGBRegressor(
+        bootstrap = bootstrap,
         max_depth = max_depth,
-        learning_rate = learning_rate,
-        gamma = gamma,
-        reg_lambda = reg_lambda,
+        max_features = max_features,
+        min_samples_leaf = min_samples_leaf,
+        min_samples_split = min_samples_split,
         n_estimators = n_estimators,
-        scale_pos_weight = scale_pos_weight,
-        colsample_bytree = colsample_bytree,
-        seed = seed,
-        subsample = subsample
+        random_state = random_state,
     )
 
     # Training the model
     model_fit = model.fit(
         X=X_train,
-        y=y_train,
-        early_stopping_rounds=100,
-        eval_metric= ['mape'],
-        eval_set =[(X_train, y_train), (X_test, y_test)]
+        y=y_train
     )
 
     ### Perform Predictions
@@ -161,13 +151,13 @@ with mlflow.start_run(run_name = RUN_NAME) as run:
 
     ### Log the metrics
 
-    mlflow.log_param("learning_rate", learning_rate)
+    mlflow.log_param("bootstrap", bootstrap)
     mlflow.log_param("max_depth", max_depth)
-    mlflow.log_param("gamma", gamma)
+    mlflow.log_param("max_features", max_features)
     mlflow.log_param("n_estimators", n_estimators)
-    mlflow.log_param("reg_lambda", reg_lambda)
-    mlflow.log_param("scale_pos_weight", scale_pos_weight)
-    mlflow.log_param("colsample_bytree", colsample_bytree)
+    mlflow.log_param("min_samples_leaf", min_samples_leaf)
+    mlflow.log_param("min_samples_split", min_samples_split)
+    mlflow.log_param("n_estimators", n_estimators)
 
     # Define a metric to use to evaluate the model.
 
@@ -193,20 +183,20 @@ with mlflow.start_run(run_name = RUN_NAME) as run:
 
     fig, axs = plt.subplots(figsize=(12, 8))
     axs.scatter(x=y_val, y=predictions)
-    axs.set_title(f"XGBoost Predicted versus ground truth\n R2 = {r2} | RMSE = {rmse} | MAPE = {mape}")
-    axs.set_xlabel("True processing time")
-    axs.set_ylabel("Predicted processing time")
-    plt.savefig("artefacts/scatter_plot.png")
+    axs.set_title(f"Random Forest Predicted versus ground truth\n R2 = {r2} | RMSE = {rmse} | MAPE = {mape}")
+    axs.set_xlabel(f"True {TARGET_VARIABLE}")
+    axs.set_ylabel(f"Predicted {TARGET_VARIABLE}")
+    plt.savefig("artefacts/scatter_plot_rf.png")
     fig.show()
 
-    mlflow.log_artifact("artefacts/scatter_plot.png")
+    mlflow.log_artifact("artefacts/scatter_plot_rf.png")
 
-    mlflow.sklearn.log_model(model_fit, "xgboost_regression")
+    mlflow.sklearn.log_model(model_fit, RUN_NAME)
 
-    np.savetxt('artefacts/predictions.csv', predictions, delimiter=',')
+    np.savetxt('artefacts/predictions_rf.csv', predictions, delimiter=',')
 
     # Log the saved table as an artifact
-    mlflow.log_artifact("artefacts/predictions.csv")
+    mlflow.log_artifact("artefacts/predictions_rf.csv")
 
     # Convert the residuals to a pandas dataframe to take advantage of graphics  
     predictions_df = pd.DataFrame(data = predictions - y_val)
@@ -217,8 +207,8 @@ with mlflow.start_run(run_name = RUN_NAME) as run:
     plt.ylabel("Residual")
     plt.title("Residuals")
 
-    plt.savefig("artefacts/residuals_plot.png")
-    mlflow.log_artifact("artefacts/residuals_plot.png")
+    plt.savefig("artefacts/residuals_plot_rf.png")
+    mlflow.log_artifact("artefacts/residuals_plot_rf.png")
 
 # COMMAND ----------
 
