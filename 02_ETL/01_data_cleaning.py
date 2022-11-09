@@ -41,12 +41,18 @@ fishDF = fishDF.drop("Species")
 
 # COMMAND ----------
 
+train, test = fishDF.randomSplit([0.8, 0.2], seed=42)
+
+# COMMAND ----------
+
 # MAGIC %md
-# MAGIC #### 2.3 Save the processed table
+# MAGIC ### 4.0 Save the processed table
 
 # COMMAND ----------
 
 fishDF.write.mode("overwrite").saveAsTable("default.fish_cleaned")
+train.write.mode("overwrite").saveAsTable("default.fish_cleaned_training")
+test.write.mode("overwrite").saveAsTable("default.fish_cleaned_testing")
 
 # COMMAND ----------
 

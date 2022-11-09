@@ -1,10 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC ## XGBoost Hyperparameter Optimisation
-# MAGIC 
-# MAGIC **Objective**: This notebook's objective is train and optimise a XGBoost regression model
-# MAGIC 
-# MAGIC **Takeaways**: The key takeaways of this notebook are:
+# MAGIC ## Modeling a simple Random Forest using MLflow
 
 # COMMAND ----------
 
@@ -22,57 +18,212 @@ RUN_NAME = 'RandomForest_Hyperopt'
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 3.0 Build the hyperparameter optimisation
+# MAGIC ### 2.0 Load the data
 
 # COMMAND ----------
 
-def objective(search_space):
-    
-    model = RandomForestRegressor(
-        random_state = random_forest_fixed_model_config['RANDOM_STATE'],
-        **search_space
-    )
-    model.fit(
-        X_train,
-        y_train
-    )
-    
-    y_pred = model.predict(X_val)
-    mse = mean_squared_error(y_val, y_pred)
-    
-    return {'loss': mse, 'status': STATUS_OK}
+train_df = spark.sql("SELECT * FROM default.fish_cleaned_training").toPandas()
+X = train_df.drop(TARGET_VARIABLE, axis=1)
+y = train_df[TARGET_VARIABLE]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # COMMAND ----------
 
-search_space = randomforest_hyperparameter_config
-
-algorithm = tpe.suggest
-
-spark_trials = SparkTrials(parallelism=PARALELISM)
+# MAGIC %md
+# MAGIC ### 3.0 Train a regressor model without hyperparameter tuning
 
 # COMMAND ----------
 
-with mlflow.start_run(run_name=RUN_NAME):
-    best_params = fmin(
-        fn=objective,
-        space=search_space,
-        algo=algorithm,
-        max_evals=model_config['MAX_EVALS'],
-        trials=spark_trials
-    )
+# Create and instance
+model = RandomForestRegressor()
+
+# Fit the model
+model.fit(
+X_train,
+y_train
+)
+
+
 
 # COMMAND ----------
 
-rf_best_param_names = space_eval(search_space, best_params)
+# MAGIC %md
+# MAGIC #### 3.1 Validate
 
 # COMMAND ----------
 
-rf_best_param_names
+# Perform predictions
+y_pred = model.predict(X_test)
+
+# Get an evaluation metric
+mape = round(mean_absolute_percentage_error(y_test, y_pred), 3)
+r2 = round(r2_score(y_test, y_pred), 3)
+
+# COMMAND ----------
+
+fig, axs = plt.subplots(figsize=(12, 8))
+
+plt.scatter(y_test, y_pred)
+plt.title(f"Predicted versus Ground truth\nR2 = {r2} | MAPE = {mape}")
+plt.xlabel("True values")
+plt.ylabel("Predicted values")
+plt.show()
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC #### 3.2 Train the model with the optimal parameters
+
+# COMMAND ----------
+
+# Create and instance
+model = RandomForestRegressor(
+    max_depth = 5,
+    min_samples_leaf = 3,
+    min_samples_split = 3,
+    n_estimators = 200,
+    random_state = 42,
+)
+
+# Fit the model
+model.fit(
+X_train,
+y_train
+)
+
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### 3.3 Validate
+
+# COMMAND ----------
+
+# Perform predictions
+y_pred = model.predict(X_test)
+
+# Get an evaluation metric
+mape = round(mean_absolute_percentage_error(y_test, y_pred), 3)
+r2 = round(r2_score(y_test, y_pred), 3)
+
+# COMMAND ----------
+
+print(mape, r2)
+
+# COMMAND ----------
+
+fig, axs = plt.subplots(figsize=(12, 8))
+
+plt.scatter(y_test, y_pred)
+plt.title(f"Predicted versus Ground truth\nR2 = {r2} | MAPE = {mape}")
+plt.xlabel("True values")
+plt.ylabel("Predicted values")
+plt.show()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### 4.0 Using MLflow
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### 4.1 Just run it simple
+
+# COMMAND ----------
+
+with mlflow.start_run(run_name = RUN_NAME) as run:
+    # Create and instance
+    model = RandomForestRegressor(
+        max_depth = 5,
+        min_samples_leaf = 3,
+        min_samples_split = 3,
+        n_estimators = 200,
+        random_state = 42,
+    )
+
+    # Fit the model
+    model.fit(
+    X_train,
+    y_train
+    )
+    
+    ## Validate the model
+    # Perform predictions
+    y_pred = model.predict(X_test)
+
+    # Get an evaluation metric
+    mape = mean_absolute_percentage_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+    print(mape, r2)
+    
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### 4.2 Try to log some metrics and parameters
+
+# COMMAND ----------
+
+max_depth = 5
+min_samples_leaf = 3
+min_samples_split = 3
+n_estimators = 200
+random_state = 42
+
+# COMMAND ----------
+
+with mlflow.start_run(run_name = RUN_NAME+'_with_log') as run:
+    # Create and instance
+    model = RandomForestRegressor(
+        max_depth = max_depth,
+        min_samples_leaf = min_samples_leaf,
+        min_samples_split = min_samples_split,
+        n_estimators = n_estimators,
+        random_state = random_state,
+    )
+
+    # Fit the model
+    model.fit(
+    X_train,
+    y_train
+    )
+    
+    ## Validate the model
+    # Perform predictions
+    y_pred = model.predict(X_test)
+
+    # Get an evaluation metric
+    mape = round(mean_absolute_percentage_error(y_test, y_pred),3 )
+    r2 = round(r2_score(y_test, y_pred), 3)
+    
+    
+    # Log the metrics
+    mlflow.log_metric("MAPE", mape)
+    mlflow.log_metric("R2", r2)
+    
+    # Log the parameters
+    mlflow.log_param("max_depth", max_depth)
+    mlflow.log_param("min_samples_leaf", min_samples_leaf)
+    mlflow.log_param("min_samples_split", min_samples_split)
+    mlflow.log_param("n_estimators", n_estimators)
+    mlflow.log_param("random_state", random_state)
+    
+    # Log the model
+    mlflow.sklearn.log_model(model, "artifacts/random_forest_model")
+    
+    # Log the evaluation figure
+    fig, axs = plt.subplots(figsize=(12, 8))
+
+    plt.scatter(y_test, y_pred)
+    plt.title(f"Predicted versus Ground truth\nR2 = {r2} | MAPE = {mape}")
+    plt.xlabel("True values")
+    plt.ylabel("Predicted values")
+    
+    plt.savefig("artifacts/r2_figure.png")
+    
+    mlflow.log_artifact('artifacts/r2_figure.png')
 
 # COMMAND ----------
 
