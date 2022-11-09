@@ -75,11 +75,19 @@ from lightgbm import LGBMRegressor
 
 # COMMAND ----------
 
+TARGET_VARIABLE = 'Weight'
+COMPARISON_METRIC = 'MAPE'
+REGISTER_MODEL_NAME = 'Artefact_Meetup'
+PARALELISM = 1
+
+# COMMAND ----------
+
 model_config = {
     'NUMBER_OF_STD_TO_KEEP_OUTLIERS': 2,
     'TARGET_VARIABLE': 'LOG_TOTAL_PROCESSING_TIME',
     'TEST_SIZE_TEST': 0.2,
     'TEST_SIZE_VAL': 0.5,
+    'MAX_EVALS': 200,
 }
 
 etr_model_config = {
@@ -168,12 +176,12 @@ lightgbm_hyperparameter_config = {
 }
 
 xgboost_hyperparameter_config = {
-    'max_depth': hp.choice('max_depth', [9, 11, 30]),
-    'learning_rate': hp.choice('learning_rate', [0.01, 0.1, 0.5, 1.0]),
-    'gamma': hp.choice('gamma', [0.01, 0.1, 1.0]),
+    'max_depth': hp.choice('max_depth', [4, 9, 11, 30]),
+    'learning_rate': hp.choice('learning_rate', [0.01, 0.08 ,0.1, 0.5, 1.0]),
+    'gamma': hp.choice('gamma', [0.01, 0.08, 0.1, 1.0]),
     'reg_lambda': hp.choice('reg_lambda', [1, 10, 30, 100]),
-    'n_estimators': hp.choice('n_estimators', [40, 200, 300]),
-    'scale_pos_weight': hp.choice('scale_pos_weight', [2, 5, 8, 10]),
+    'n_estimators': hp.choice('n_estimators', [40, 200, 300, 500, 1000]),
+    'scale_pos_weight': hp.choice('scale_pos_weight', [1, 2, 3, 4, 10, 15]),
     'colsample_bytree': hp.uniform('colsample_bytree', 0.3, 1.0),
 }
 

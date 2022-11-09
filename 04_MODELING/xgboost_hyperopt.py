@@ -17,10 +17,6 @@
 
 # COMMAND ----------
 
-TARGET_VARIABLE = 'Weight'
-
-# COMMAND ----------
-
 RUN_NAME = 'XGBoost_Hyperopt'
 
 # COMMAND ----------
@@ -30,27 +26,8 @@ RUN_NAME = 'XGBoost_Hyperopt'
 
 # COMMAND ----------
 
-df = spark.sql("SELECT * FROM default.fish_cleaned").toPandas()
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC ### 3.0 Build the hyperparameter optimisation
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC #### 3.1 Split the dataset
-
-# COMMAND ----------
-
-X = df.drop(TARGET_VARIABLE, axis=1)
-y = df[TARGET_VARIABLE]
-
-# COMMAND ----------
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size=0.5, random_state=42)
 
 # COMMAND ----------
 
@@ -81,7 +58,7 @@ search_space = xgboost_hyperparameter_config
 
 algorithm = tpe.suggest
 
-spark_trials = SparkTrials(parallelism=1)
+spark_trials = SparkTrials(parallelism=PARALELISM)
 
 # COMMAND ----------
 
@@ -90,7 +67,7 @@ with mlflow.start_run(run_name=RUN_NAME):
         fn=objective,
         space=search_space,
         algo=algorithm,
-        max_evals=10,
+        max_evals=model_config['MAX_EVALS'],
         trials=spark_trials
     )
 
@@ -106,6 +83,10 @@ xgboost_best_param_names
 
 # MAGIC %md
 # MAGIC #### 3.2 Train the model with the optimal parameters
+
+# COMMAND ----------
+
+X_train
 
 # COMMAND ----------
 
@@ -220,6 +201,14 @@ with mlflow.start_run(run_name = RUN_NAME) as run:
 
     plt.savefig("artefacts/residuals_plot_xgboost.png")
     mlflow.log_artifact("artefacts/residuals_plot_xgboost.png")
+
+# COMMAND ----------
+
+model.predict(X_test)
+
+# COMMAND ----------
+
+model.feature_names_in_
 
 # COMMAND ----------
 

@@ -17,12 +17,6 @@
 
 # COMMAND ----------
 
-TARGET_VARIABLE = 'Weight'
-COMPARISON_METRIC = 'MAPE'
-REGISTER_MODEL_NAME = 'Artefact_Meetup'
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC ### 2.0 Data Loading
 
@@ -42,7 +36,7 @@ df = spark.sql("SELECT * FROM default.fish_cleaned").toPandas()
 
 # COMMAND ----------
 
-experiments_notebook = mlflow.get_experiment_by_name('/Repos/michel.araujo@artefact.com/time_series_mlops/04_MODELING/run_pipeline')
+experiments_notebook = mlflow.get_experiment_by_name('/Repos/michel.araujo@artefact.com/time_series_mlops/04_MODELING/train')
 experiments_ids = experiments_notebook.experiment_id
 
 # COMMAND ----------
@@ -95,6 +89,10 @@ best_model_name
 # COMMAND ----------
 
 model = mlflow.sklearn.load_model(model_uri = f"runs:/{best_run_id}/{best_model_name}")
+
+# COMMAND ----------
+
+model
 
 # COMMAND ----------
 
@@ -175,12 +173,12 @@ candidate_model_mape = mlflow.get_run(result.run_id).data.metrics[COMPARISON_MET
 
 # COMMAND ----------
 
-if candidate_model_mape > current_model_mape:
+if candidate_model_mape < current_model_mape:
     print(f'Candidate model has a better {COMPARISON_METRIC} than the active model. Switching models...')
     client.transition_model_version_stage(
         name=REGISTER_MODEL_NAME,
         version=result.version,
-        stage=DEFAULT_MODEL_ENV,
+        stage='Staging',
     )
 
     client.transition_model_version_stage(
