@@ -28,10 +28,6 @@ fishDF = spark.sql("SELECT * FROM fish;")
 
 # COMMAND ----------
 
-display(fishDF)
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC ### 3.0 Drop the categorical column
 
@@ -41,12 +37,17 @@ fishDF = fishDF.drop("Species")
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ### 4.0 Train test Split
+
+# COMMAND ----------
+
 train, test = fishDF.randomSplit([0.8, 0.2], seed=42)
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 4.0 Save the processed table
+# MAGIC ### 5.0 Save the processed table
 
 # COMMAND ----------
 

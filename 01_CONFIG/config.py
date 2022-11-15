@@ -75,19 +75,13 @@ from lightgbm import LGBMRegressor
 
 # COMMAND ----------
 
-TARGET_VARIABLE = 'Weight'
-COMPARISON_METRIC = 'MAPE'
-REGISTER_MODEL_NAME = 'Artefact_Meetup'
-PARALELISM = 1
-
-# COMMAND ----------
-
 model_config = {
-    'NUMBER_OF_STD_TO_KEEP_OUTLIERS': 2,
-    'TARGET_VARIABLE': 'LOG_TOTAL_PROCESSING_TIME',
-    'TEST_SIZE_TEST': 0.2,
-    'TEST_SIZE_VAL': 0.5,
-    'MAX_EVALS': 200,
+    'TARGET_VARIABLE': 'Weight',
+    'COMPARISON_METRIC': 'MAPE',
+    'TEST_SIZE': 0.2,
+    'MAX_EVALS': 10,
+    'REGISTER_MODEL_NAME': 'Artefact_Meetup',
+    'PARALELISM': 1
 }
 
 etr_model_config = {

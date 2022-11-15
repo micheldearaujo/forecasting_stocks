@@ -1,8 +1,8 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC ## XGBoost Hyperparameter Optimisation
+# MAGIC ## Model training and selection pipeline
 # MAGIC 
-# MAGIC **Objective**: This notebook's objective is train and optimise a XGBoost regression model
+# MAGIC **Objective**: This notebook's objective run the model training and selection pipeline
 # MAGIC 
 # MAGIC **Takeaways**: The key takeaways of this notebook are:
 
@@ -38,7 +38,7 @@ train_df = spark.sql("SELECT * FROM default.fish_cleaned_training").toPandas()
 X = train_df.drop(TARGET_VARIABLE, axis=1)
 y = train_df[TARGET_VARIABLE]
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=model_config['TEST_SIZE'], random_state=42)
 
 # COMMAND ----------
 

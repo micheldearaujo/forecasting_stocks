@@ -1,10 +1,8 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC ## XGBoost Hyperparameter Optimisation
+# MAGIC ## Extra Trees Hyperparameter Optimisation
 # MAGIC 
-# MAGIC **Objective**: This notebook's objective is train and optimise a XGBoost regression model
-# MAGIC 
-# MAGIC **Takeaways**: The key takeaways of this notebook are:
+# MAGIC **Objective**: This notebook's objective is train and optimise a Extra Trees regression model
 
 # COMMAND ----------
 
@@ -17,16 +15,19 @@
 
 # COMMAND ----------
 
-TARGET_VARIABLE = 'Weight'
-
-# COMMAND ----------
-
 RUN_NAME = 'ExtraTrees_Hyperopt'
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ### 2.0 Data Loading
+
+# COMMAND ----------
+
+train_df = spark.sql("SELECT * FROM default.fish_cleaned_training").toPandas()
+X = train_df.drop(model_config['TARGET_VARIABLE'], axis=1)
+y = train_df[model_config['TARGET_VARIABLE']]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=model_config['TEST_SIZE'], random_state=42)
 
 # COMMAND ----------
 
@@ -46,8 +47,8 @@ def objective(search_space):
         y_train
     )
     
-    y_pred = model.predict(X_val)
-    mse = mean_squared_error(y_val, y_pred)
+    y_pred = model.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
     
     return {'loss': mse, 'status': STATUS_OK}
 
@@ -57,7 +58,7 @@ search_space = etr_hyperparameter_config
 
 algorithm = tpe.suggest
 
-spark_trials = SparkTrials(parallelism=PARALELISM)
+spark_trials = SparkTrials(parallelism=model_config['PARALELISM'])
 
 # COMMAND ----------
 
@@ -120,13 +121,15 @@ with mlflow.start_run(run_name = RUN_NAME) as run:
         X=X_train,
         y=y_train,
     )
+    
+    # Log the model
+    mlflow.sklearn.log_model(model_fit, RUN_NAME)
 
     ### Perform Predictions
     # Use the model to make predictions on the test dataset.
-    predictions = model_fit.predict(X_val)
+    predictions = model_fit.predict(X_test)
 
     ### Log the metrics
-
     mlflow.log_param("criterion", criterion)
     mlflow.log_param("max_depth", max_depth)
     mlflow.log_param("n_estimators", n_estimators)
@@ -136,54 +139,45 @@ with mlflow.start_run(run_name = RUN_NAME) as run:
     # Define a metric to use to evaluate the model.
 
     # RMSE
-    rmse = round(np.sqrt(mean_squared_error(y_val, predictions)), 2)
+    rmse = round(np.sqrt(mean_squared_error(y_test, predictions)), 2)
     # R2
-    r2 = round(r2_score(y_val, predictions), 2)
+    r2 = round(r2_score(y_test, predictions), 2)
     # R2 adjusted
-    p = X_val.shape[1]
-    n = X_val.shape[0]
+    p = X_test.shape[1]
+    n = X_test.shape[0]
     adjust_r2 = 1-(1-r2)*(n-1)/(n-p-1)
     # MAPE
-    mape = round(mean_absolute_percentage_error(y_val, predictions), 3)
-
-
+    mape = round(mean_absolute_percentage_error(y_test, predictions), 3)
+    
+    # Log the metrics
     mlflow.log_metric("RMSE", rmse)
     mlflow.log_metric("R2", r2)
     mlflow.log_metric("R2_Adj", adjust_r2)
     mlflow.log_metric("MAPE", mape)
-
-    mlflow.log_metric('Dataset_Size', df.shape[0])
+    mlflow.log_metric('Dataset_Size', X_train.shape[0])
     mlflow.log_metric('Number_of_variables', X_train.shape[1])
-
+    
+    # Plot the results
     fig, axs = plt.subplots(figsize=(12, 8))
-    axs.scatter(x=y_val, y=predictions)
+    axs.scatter(x=y_test, y=predictions)
     axs.set_title(f"ETR Predicted versus ground truth\n R2 = {r2} | RMSE = {rmse} | MAPE = {mape}")
     axs.set_xlabel(f"True {TARGET_VARIABLE}")
     axs.set_ylabel(f"Predicted {TARGET_VARIABLE}")
-    plt.savefig("artefacts/scatter_plot_etr.png")
+    plt.savefig("artifacts/scatter_plot_etr.png")
     fig.show()
 
-    mlflow.log_artifact("artefacts/scatter_plot_etr.png")
-
-    mlflow.sklearn.log_model(model_fit, RUN_NAME)
-
-    np.savetxt('artefacts/predictions_etr.csv', predictions, delimiter=',')
-
-    # Log the saved table as an artifact
-    mlflow.log_artifact("artefacts/predictions_etr.csv")
-
+    np.savetxt('artifacts/predictions_etr.csv', predictions, delimiter=',')
     # Convert the residuals to a pandas dataframe to take advantage of graphics  
-    predictions_df = pd.DataFrame(data = predictions - y_val)
+    predictions_df = pd.DataFrame(data = predictions - y_test)
 
     plt.figure()
     plt.plot(predictions_df)
     plt.xlabel("Observation")
     plt.ylabel("Residual")
     plt.title("Residuals")
-
-    plt.savefig("artefacts/residuals_plot_etr.png")
-    mlflow.log_artifact("artefacts/residuals_plot_etr.png")
-
-# COMMAND ----------
-
-
+    plt.savefig("artifacts/residuals_plot_etr.png")
+    
+    # Log some artifacts
+    mlflow.log_artifact("artifacts/scatter_plot_etr.png")
+    mlflow.log_artifact("artifacts/residuals_plot_etr.png")
+    mlflow.log_artifact("artifacts/predictions_etr.csv")
