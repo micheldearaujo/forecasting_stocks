@@ -15,6 +15,16 @@ import datetime as dt
 import sys
 import os
 
+# Time Series Libraries
+import statsmodels.api as sm
+from statsmodels.tsa.stattools import adfuller
+from sklearn.preprocessing import RobustScaler
+from statsmodels.tsa.seasonal import STL
+from statsmodels.graphics.tsaplots import plot_acf  # Plot de Autocorrelação - Moving Averages
+from statsmodels.graphics.tsaplots import plot_pacf  # Plot de Autocorrelação - Auto Regressive
+from pmdarima.arima.utils import ndiffs 
+from statsmodels.tsa.seasonal import seasonal_decompose
+
 plt.style.use("fivethirtyeight")
 # Define dates to start and end
 initial_stock_date = dt.datetime.now().date() - dt.timedelta(days=3*365)
