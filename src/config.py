@@ -40,7 +40,7 @@ model_config = {
     "TARGET_NAME": "Close",
     "VALIDATION_METRIC": "MAPE",
     "OPTIMIZATION_METRIC": "MSE",
-    "FORECAST_HORIZON": 30
+    "FORECAST_HORIZON": 10
 }
 
 # Define a ação para procurar

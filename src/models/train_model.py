@@ -19,4 +19,4 @@ X_train, X_test, y_train, y_test = ts_train_test_split(stock_df_feat, model_conf
 
 
 # Execute the whole pipeline
-make_predictions(pd.concat([X_train, X_test], axis=0), pd.concat([y_train, y_test], axis=0), model_config['FORECAST_HORIZON'])
+make_out_of_sample_predictions(pd.concat([X_train, X_test], axis=0), pd.concat([y_train, y_test], axis=0), model_config['FORECAST_HORIZON'])

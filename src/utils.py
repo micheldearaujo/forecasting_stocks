@@ -104,21 +104,8 @@ def visualize_validation_results(pred_df, model_mape, model_rmse):
     axs.set_xlabel("Date")
     axs.set_ylabel("R$")
 
-    plt.savefig(f"./XGBoost_predictions_{dt.datetime.now()}.png")
-
-
-def validate_model(model, X_val):
-    """
-    Perform predictions to validate the model
-    
-    :param model: The Fitted model
-    :param X_val: Validation Features
-    :Param y_val: Validation Target
-    """
-
-    prediction = model.predict(X_val)
-
-    return prediction
+    plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now()}.png")
+    plt.show()
 
 
 def train_model(X_train, y_train, random_state=42):
@@ -144,10 +131,17 @@ def train_model(X_train, y_train, random_state=42):
     return xgboost_model
 
 
-def make_predictions(X, y, forecast_horizon):
+def make_out_of_sample_predictions(X, y, forecast_horizon):
     """
-    Iterate over forecast horizon performing
-    stepwise iterative predictions
+    Make predictions for the next `forecast_horizon` days using a XGBoost model
+    
+    Parameters:
+        X (pandas dataframe): The input data
+        y (pandas dataframe): The target data
+        forecast_horizon (int): Number of days to forecast
+        
+    Returns:
+        None
     """
 
     # Create empty list for storing each prediction
@@ -161,25 +155,45 @@ def make_predictions(X, y, forecast_horizon):
     # After forecasting the next step, we need to append the new line to the training dataset and so on
 
     for day in range(forecast_horizon, 0, -1):
-        print(day)
+
         # update the training and testing sets
         X_train = X.iloc[:-day, :]
         y_train = y.iloc[:-day]
         print("Training until", X_train["Date"].max())
-        if day == 1:
-            X_test = X.iloc[-day:,:]
-            y_test = y.iloc[-day:]
-        else:
+        if day != 1:
+            # the testing set will be the next day after the training
             X_test = X.iloc[-day:-day+1,:]
             y_test = y.iloc[-day:-day+1]
-        print("Testing for day: ", X_test)
-        #print(X_test)
 
+        else:
+            # need to change the syntax for the last day (for -1:-2 will not work)
+            X_test = X.iloc[-day:,:]
+            y_test = y.iloc[-day:]
+
+        print("Testing for day: ", X_test)
+        
+        # only the first iteration will use the true value of y_train
+        # because the following ones will use the last predicted value as true value
+        # so we simulate the process of predicting out-of-sample
+        if len(predictions) != 0:
+            print("-"*20)
+            print(y_train)
+            y_train.iloc[-len(predictions)] = predictions[-len(predictions)]
+            print(predictions)
+            print(predictions[-len(predictions)])
+            print(y_train)
+        else:
+            pass
+        
+        print(X_train.shape)
+        print(y_train.shape)
         # train the model
         xgboost_model = train_model(X_train.drop("Date", axis=1), y_train)
 
-        # validade the model
-        prediction = validate_model(xgboost_model, X_test.drop("Date", axis=1))
+        # make prediction
+        prediction = xgboost_model.predict(X_test.drop("Date", axis=1))
+
+        # store the results
         predictions.append(prediction[0])
         actuals.append(y_test.values[0])
         dates.append(X_test["Date"].max())
