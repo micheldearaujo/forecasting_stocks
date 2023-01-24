@@ -159,7 +159,7 @@ def make_out_of_sample_predictions(X, y, forecast_horizon):
         # update the training and testing sets
         X_train = X.iloc[:-day, :]
         y_train = y.iloc[:-day]
-        print("Training until", X_train["Date"].max())
+ 
         if day != 1:
             # the testing set will be the next day after the training
             X_test = X.iloc[-day:-day+1,:]
@@ -170,23 +170,18 @@ def make_out_of_sample_predictions(X, y, forecast_horizon):
             X_test = X.iloc[-day:,:]
             y_test = y.iloc[-day:]
 
-        print("Testing for day: ", X_test)
-        
+
         # only the first iteration will use the true value of y_train
         # because the following ones will use the last predicted value as true value
         # so we simulate the process of predicting out-of-sample
         if len(predictions) != 0:
-            print("-"*20)
-            print(y_train)
-            y_train.iloc[-len(predictions)] = predictions[-len(predictions)]
-            print(predictions)
-            print(predictions[-len(predictions)])
-            print(y_train)
+
+            y_train.iloc[-len(predictions):] = predictions[-len(predictions):]
+
         else:
             pass
         
-        print(X_train.shape)
-        print(y_train.shape)
+        
         # train the model
         xgboost_model = train_model(X_train.drop("Date", axis=1), y_train)
 
@@ -207,8 +202,6 @@ def make_out_of_sample_predictions(X, y, forecast_horizon):
     pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["Date", 'Actual', 'Forecast'])
     visualize_validation_results(pred_df, model_mape, model_rmse)
 
-
-
-
+    return pred_df
 
 
