@@ -175,8 +175,12 @@ def make_out_of_sample_predictions(X, y, forecast_horizon):
         # because the following ones will use the last predicted value as true value
         # so we simulate the process of predicting out-of-sample
         if len(predictions) != 0:
-
+            # update the y_train with the last predictions
             y_train.iloc[-len(predictions):] = predictions[-len(predictions):]
+
+            # now update the Close_lag_1 feature
+            X_train.iloc[-len(predictions):, -1] = y_train.shift(1).iloc[-len(predictions):]
+            X_train = X_train.dropna()
 
         else:
             pass
@@ -196,7 +200,6 @@ def make_out_of_sample_predictions(X, y, forecast_horizon):
     
     # Calculate the resulting metric
     model_mape = round(mean_absolute_percentage_error(actuals, predictions), 4)
-    print(model_mape)
     model_rmse = round(np.sqrt(mean_squared_error(actuals, predictions)), 2)
  
     pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["Date", 'Actual', 'Forecast'])
