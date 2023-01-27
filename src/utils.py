@@ -118,20 +118,24 @@ def train_model(X_train, y_train, random_state=42):
     :return: Fitted model
     """
     # create the model
-    xgboost_model = xgb.XGBRegressor(
-        random_state=random_state,
-        )
 
-    # train the model
-    xgboost_model.fit(
-        X_train,
-        y_train, 
-        )
+    with mlflow.start_run(run_name='First Run') as run:
+        xgboost_model = xgb.XGBRegressor(
+            random_state=random_state,
+            )
+
+        # train the model
+        xgboost_model.fit(
+            X_train,
+            y_train,
+            )
+        
+        mlflow.sklearn.log_model(xgboost_model, "first_xgboost")
 
     return xgboost_model
 
 
-def make_out_of_sample_predictions(X, y, forecast_horizon):
+def make_out_of_sample_predictions(X:pd.DataFrame, y:pd.Series, forecast_horizon: int) -> pd.DataFrame:
     """
     Make predictions for the next `forecast_horizon` days using a XGBoost model
     
@@ -206,5 +210,4 @@ def make_out_of_sample_predictions(X, y, forecast_horizon):
     visualize_validation_results(pred_df, model_mape, model_rmse)
 
     return pred_df
-
 
