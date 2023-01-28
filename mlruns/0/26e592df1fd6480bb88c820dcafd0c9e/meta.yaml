@@ -1,0 +1,15 @@
+artifact_uri: file:///home/michel/Projects/mlops_practice/mlruns/0/26e592df1fd6480bb88c820dcafd0c9e/artifacts
+end_time: 1674914771394
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 26e592df1fd6480bb88c820dcafd0c9e
+run_name: First Run
+run_uuid: 26e592df1fd6480bb88c820dcafd0c9e
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1674914769833
+status: 3
+tags: []
+user_id: michel
