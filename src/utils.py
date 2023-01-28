@@ -45,7 +45,20 @@ def build_features(raw_df: pd.DataFrame, features_list: list) -> pd.DataFrame:
     return stock_df_featurized
 
 
-def ts_train_test_split(data, target, test_size):
+def ts_train_test_split(data: pd.DataFrame, target:str, test_size: int):
+    """
+    Splits the Pandas DataFrame into training and tests sets
+    based on a Forecast Horizon value.
+
+    Paramteres:
+        data (pandas dataframe): Complete dataframe with full data
+        targer (string): the target column name
+        test_size (int): the amount of periods to forecast
+
+    Returns:
+        X_train, X_test, y_train, y_test dataframes for training and testing
+    """
+
     train_df = data.iloc[:-test_size, :]
     test_df = data.iloc[-test_size:, :]
     X_train = train_df.drop(target, axis=1)
@@ -56,10 +69,17 @@ def ts_train_test_split(data, target, test_size):
     return X_train, X_test, y_train, y_test
 
 
-def visualize_validation_results(pred_df, model_mape, model_rmse):
-
+def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model_rmse: float):
     """
-    Creates visualizations of the model training and validation
+    Creates visualizations of the model validation
+
+    Paramters:
+        pred_df: DataFrame with true values, predictions and the date column
+        model_mape: The validation MAPE
+        model_rmse: The validation RMSE
+
+    Returns:
+        None
     """
 
     # Transform predictions into dataframe
@@ -108,7 +128,7 @@ def visualize_validation_results(pred_df, model_mape, model_rmse):
     plt.show()
 
 
-def train_model(X_train, y_train, random_state=42):
+def train_model(X_train: pd.DataFrame,  y_train: pd.DataFrame, random_state:int=42):
     """
     Trains a XGBoost model for Forecasting
     
