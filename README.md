@@ -1,9 +1,28 @@
-Stocks prices Forecasting
-==============================
 
-This is a simple Machine Learning project built in order to practice MLOps.
+# Previsão de preço de ações
 
-In this project I will build a Machine Learning System that perfor, on-demand forecasting
-of stock prices and sends it to the user through some tool (Telegram or web-based, to be defined).
+O objetivo deste projeto é criar um modelo prescritivo com o objetivo de informar qual é o melhor dia para comprar ou vender ações baseado em parâmetros setados pelo usuário.
 
+O produto é baseado em um modelo de Forecasting (inicialmente XGBoost, modelos ainda em construção) que irá prevê o preço de ações (a escolha do usuário) para os próximos 10 dias úteis, e partir desses valores irá realizar recomendações de compra ou venda, baseado em estratégias (to be defined).
+## Authors
+
+- [@micheldearaujo](https://github.com/micheldearaujo/forecasting_stocks)
+- [Linkedin](https://www.linkedin.com/in/michel-de-ara%C3%BAjo-947377197/)
+
+
+## Installation
+
+Para instalar o projeto localmente
+
+```bash
+  git clone 
+  cd my-project
+  make install
+```
+## Usage/Examples
+
+```python
+
+
+```
 
