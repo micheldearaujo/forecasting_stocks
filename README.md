@@ -15,14 +15,18 @@ O produto é baseado em um modelo de Forecasting (inicialmente XGBoost, modelos 
 Para instalar o projeto localmente
 
 ```bash
-  git clone 
-  cd my-project
+  git clone https://github.com/micheldearaujo/forecasting_stocks.git
+  cd forecasting_stocks
+  python3 -m venv forecasting_stocks
+  source forecasting_stocks/bin/activate
   make install
+  make lint
 ```
 ## Usage/Examples
 
 ```python
-
+  
+  python3 src/models/train_model.py
 
 ```
 
