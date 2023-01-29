@@ -15,7 +15,7 @@ install-aws:
 		pip install -r requirements-aws.txt
 
 lint:
-	pylint --disable=R,C hello.py
+	pylint --disable=R,C *.py
 	
 format:
 	black *.py
