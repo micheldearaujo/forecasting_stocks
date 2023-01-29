@@ -49,7 +49,7 @@ model_config = {
 }
 
 # Define a ação para procurar
-STOCK_NAME = 'BOVA11.SA'
+#STOCK_NAME = 'BOVA11.SA'
 
 # Configura o logging
 log_format = "[%(name)s][%(levelname)-6s] %(message)s"

@@ -5,15 +5,13 @@ sys.path.insert(0, '/home/michel/Projects/mlops_practice/src')
 from utils import *
 
 
-# Para usar datas:
-#start=initial_stock_date, end=final_stock_date, 
-stock_price_df = yfin.Ticker(STOCK_NAME).history(period='800d', interval='1d')
-stock_price_df['Stock'] = STOCK_NAME
-stock_price_df = stock_price_df[['Close']]
-stock_price_df = stock_price_df.reset_index()
-stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
-stock_price_df['Date'] = stock_price_df['Date'].apply(lambda x: x.date())
-stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
-stock_price_df.to_csv('./data/raw/raw_stock_prices.csv', index=False)
-#stock_price_df.set_index('Date').plot()
-#plt.show()
+def make_dataset(stock_name: str, period: str, interval: str):
+
+    stock_price_df = yfin.Ticker(stock_name).history(period=period, interval=interval)
+    stock_price_df['Stock'] = stock_name
+    stock_price_df = stock_price_df[['Close']]
+    stock_price_df = stock_price_df.reset_index()
+    stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
+    stock_price_df['Date'] = stock_price_df['Date'].apply(lambda x: x.date())
+    stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
+    stock_price_df.to_csv('./data/raw/raw_stock_prices.csv', index=False)
