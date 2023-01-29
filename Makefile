@@ -14,7 +14,6 @@ install-aws:
 	pip install --upgrade pip &&\
 		pip install -r requirements-aws.txt
 
-
 lint:
 	pylint --disable=R,C hello.py
 	
@@ -23,5 +22,5 @@ format:
 
 clean:
 	rm -rf __pycache__
-	rm -f *.pyc
+	rm -f *.log
 	rm -f *.log
