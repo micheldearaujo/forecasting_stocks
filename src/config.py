@@ -16,6 +16,7 @@ import datetime as dt
 import sys
 import os
 import logging
+from joblib import load, dump
 
 # Time Series Libraries
 import statsmodels.api as sm
@@ -44,7 +45,7 @@ model_config = {
     "TARGET_NAME": "Close",
     "VALIDATION_METRIC": "MAPE",
     "OPTIMIZATION_METRIC": "MSE",
-    "FORECAST_HORIZON": 10,
+    "FORECAST_HORIZON": 14,
     "REGISTER_MODEL_NAME": "Stock_Predictor"
 }
 
