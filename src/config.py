@@ -15,6 +15,7 @@ import yfinance as yfin
 import datetime as dt
 import sys
 import os
+import logging
 
 # Time Series Libraries
 import statsmodels.api as sm
@@ -28,6 +29,9 @@ from sklearn.model_selection import train_test_split, TimeSeriesSplit
 from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
 import xgboost as xgb
 
+# MLOps
+import mlflow
+
 
 plt.style.use("fivethirtyeight")
 
@@ -40,8 +44,15 @@ model_config = {
     "TARGET_NAME": "Close",
     "VALIDATION_METRIC": "MAPE",
     "OPTIMIZATION_METRIC": "MSE",
-    "FORECAST_HORIZON": 30
+    "FORECAST_HORIZON": 10,
+    "REGISTER_MODEL_NAME": "Stock_Predictor"
 }
 
 # Define a ação para procurar
 STOCK_NAME = 'BOVA11.SA'
+
+# Configura o logging
+log_format = "[%(name)s][%(levelname)-6s] %(message)s"
+logging.basicConfig(format=log_format)
+logger = logging.getLogger("describe")
+logger.setLevel(logging.ERROR)

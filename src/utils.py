@@ -17,6 +17,8 @@ def build_features(raw_df: pd.DataFrame, features_list: list) -> pd.DataFrame:
     :return: Pandas DataFrame with the new features
     """
 
+    logger.info("Building the features...")
+
     stock_df_featurized = raw_df.copy()
     for feature in features_list:
         
@@ -45,7 +47,22 @@ def build_features(raw_df: pd.DataFrame, features_list: list) -> pd.DataFrame:
     return stock_df_featurized
 
 
-def ts_train_test_split(data, target, test_size):
+def ts_train_test_split(data: pd.DataFrame, target:str, test_size: int):
+    """
+    Splits the Pandas DataFrame into training and tests sets
+    based on a Forecast Horizon value.
+
+    Paramteres:
+        data (pandas dataframe): Complete dataframe with full data
+        targer (string): the target column name
+        test_size (int): the amount of periods to forecast
+
+    Returns:
+        X_train, X_test, y_train, y_test dataframes for training and testing
+    """
+
+    logger.info("Spliting the dataset...")
+
     train_df = data.iloc[:-test_size, :]
     test_df = data.iloc[-test_size:, :]
     X_train = train_df.drop(target, axis=1)
@@ -56,14 +73,20 @@ def ts_train_test_split(data, target, test_size):
     return X_train, X_test, y_train, y_test
 
 
-def visualize_validation_results(pred_df, model_mape, model_rmse):
-
+def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model_rmse: float):
     """
-    Creates visualizations of the model training and validation
+    Creates visualizations of the model validation
+
+    Paramters:
+        pred_df: DataFrame with true values, predictions and the date column
+        model_mape: The validation MAPE
+        model_rmse: The validation RMSE
+
+    Returns:
+        None
     """
 
-    # Transform predictions into dataframe
-    
+    logger.info("Vizualizing the results...")
 
     fig, axs = plt.subplots(figsize=(12, 5))
     # Plot the Actuals
@@ -104,24 +127,11 @@ def visualize_validation_results(pred_df, model_mape, model_rmse):
     axs.set_xlabel("Date")
     axs.set_ylabel("R$")
 
-    plt.savefig(f"./XGBoost_predictions_{dt.datetime.now()}.png")
+    plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now()}.png")
+    plt.show()
 
 
-def validate_model(model, X_val):
-    """
-    Perform predictions to validate the model
-    
-    :param model: The Fitted model
-    :param X_val: Validation Features
-    :Param y_val: Validation Target
-    """
-
-    prediction = model.predict(X_val)
-
-    return prediction
-
-
-def train_model(X_train, y_train, random_state=42):
+def train_model(X_train: pd.DataFrame,  y_train: pd.DataFrame, random_state:int=42):
     """
     Trains a XGBoost model for Forecasting
     
@@ -130,6 +140,8 @@ def train_model(X_train, y_train, random_state=42):
 
     :return: Fitted model
     """
+    logger.info("Training the model...")
+
     # create the model
     xgboost_model = xgb.XGBRegressor(
         random_state=random_state,
@@ -138,17 +150,27 @@ def train_model(X_train, y_train, random_state=42):
     # train the model
     xgboost_model.fit(
         X_train,
-        y_train, 
+        y_train,
         )
 
     return xgboost_model
 
 
-def make_predictions(X, y, forecast_horizon):
+def make_out_of_sample_predictions(X:pd.DataFrame, y:pd.Series, forecast_horizon: int) -> pd.DataFrame:
     """
-    Iterate over forecast horizon performing
-    stepwise iterative predictions
+    Make predictions for the next `forecast_horizon` days using a XGBoost model
+    
+    Parameters:
+        X (pandas dataframe): The input data
+        y (pandas dataframe): The target data
+        forecast_horizon (int): Number of days to forecast
+        
+    Returns:
+        None
     """
+
+    logger.info("Starting the pipeline..")
+
 
     # Create empty list for storing each prediction
     predictions = []
@@ -161,25 +183,44 @@ def make_predictions(X, y, forecast_horizon):
     # After forecasting the next step, we need to append the new line to the training dataset and so on
 
     for day in range(forecast_horizon, 0, -1):
-        print(day)
+
         # update the training and testing sets
         X_train = X.iloc[:-day, :]
         y_train = y.iloc[:-day]
-        print("Training until", X_train["Date"].max())
-        if day == 1:
-            X_test = X.iloc[-day:,:]
-            y_test = y.iloc[-day:]
-        else:
+ 
+        if day != 1:
+            # the testing set will be the next day after the training
             X_test = X.iloc[-day:-day+1,:]
             y_test = y.iloc[-day:-day+1]
-        print("Testing for day: ", X_test)
-        #print(X_test)
 
+        else:
+            # need to change the syntax for the last day (for -1:-2 will not work)
+            X_test = X.iloc[-day:,:]
+            y_test = y.iloc[-day:]
+
+
+        # only the first iteration will use the true value of y_train
+        # because the following ones will use the last predicted value as true value
+        # so we simulate the process of predicting out-of-sample
+        if len(predictions) != 0:
+            # update the y_train with the last predictions
+            y_train.iloc[-len(predictions):] = predictions[-len(predictions):]
+
+            # now update the Close_lag_1 feature
+            X_train.iloc[-len(predictions):, -1] = y_train.shift(1).iloc[-len(predictions):]
+            X_train = X_train.dropna()
+
+        else:
+            pass
+        
+        
         # train the model
         xgboost_model = train_model(X_train.drop("Date", axis=1), y_train)
 
-        # validade the model
-        prediction = validate_model(xgboost_model, X_test.drop("Date", axis=1))
+        # make prediction
+        prediction = xgboost_model.predict(X_test.drop("Date", axis=1))
+
+        # store the results
         predictions.append(prediction[0])
         actuals.append(y_test.values[0])
         dates.append(X_test["Date"].max())
@@ -187,14 +228,12 @@ def make_predictions(X, y, forecast_horizon):
     
     # Calculate the resulting metric
     model_mape = round(mean_absolute_percentage_error(actuals, predictions), 4)
-    print(model_mape)
     model_rmse = round(np.sqrt(mean_squared_error(actuals, predictions)), 2)
  
     pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["Date", 'Actual', 'Forecast'])
-    visualize_validation_results(pred_df, model_mape, model_rmse)
+    print(pred_df)
+    #visualize_validation_results(pred_df, model_mape, model_rmse)
 
-
-
-
+    return pred_df
 
 
