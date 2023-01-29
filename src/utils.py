@@ -17,6 +17,8 @@ def build_features(raw_df: pd.DataFrame, features_list: list) -> pd.DataFrame:
     :return: Pandas DataFrame with the new features
     """
 
+    logger.info("Building the features...")
+
     stock_df_featurized = raw_df.copy()
     for feature in features_list:
         
@@ -59,6 +61,8 @@ def ts_train_test_split(data: pd.DataFrame, target:str, test_size: int):
         X_train, X_test, y_train, y_test dataframes for training and testing
     """
 
+    logger.info("Spliting the dataset...")
+
     train_df = data.iloc[:-test_size, :]
     test_df = data.iloc[-test_size:, :]
     X_train = train_df.drop(target, axis=1)
@@ -82,8 +86,7 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
         None
     """
 
-    # Transform predictions into dataframe
-    
+    logger.info("Vizualizing the results...")
 
     fig, axs = plt.subplots(figsize=(12, 5))
     # Plot the Actuals
@@ -137,20 +140,18 @@ def train_model(X_train: pd.DataFrame,  y_train: pd.DataFrame, random_state:int=
 
     :return: Fitted model
     """
+    logger.info("Training the model...")
+
     # create the model
+    xgboost_model = xgb.XGBRegressor(
+        random_state=random_state,
+        )
 
-    with mlflow.start_run(run_name='First Run') as run:
-        xgboost_model = xgb.XGBRegressor(
-            random_state=random_state,
-            )
-
-        # train the model
-        xgboost_model.fit(
-            X_train,
-            y_train,
-            )
-        
-        mlflow.sklearn.log_model(xgboost_model, "first_xgboost")
+    # train the model
+    xgboost_model.fit(
+        X_train,
+        y_train,
+        )
 
     return xgboost_model
 
@@ -167,6 +168,9 @@ def make_out_of_sample_predictions(X:pd.DataFrame, y:pd.Series, forecast_horizon
     Returns:
         None
     """
+
+    logger.info("Starting the pipeline..")
+
 
     # Create empty list for storing each prediction
     predictions = []
@@ -227,7 +231,9 @@ def make_out_of_sample_predictions(X:pd.DataFrame, y:pd.Series, forecast_horizon
     model_rmse = round(np.sqrt(mean_squared_error(actuals, predictions)), 2)
  
     pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["Date", 'Actual', 'Forecast'])
-    visualize_validation_results(pred_df, model_mape, model_rmse)
+    print(pred_df)
+    #visualize_validation_results(pred_df, model_mape, model_rmse)
 
     return pred_df
+
 

@@ -15,9 +15,15 @@ stock_df_feat = build_features(stock_df, features_list)
 # train test split
 X_train, X_test, y_train, y_test = ts_train_test_split(stock_df_feat, model_config["TARGET_NAME"], model_config["FORECAST_HORIZON"])
 
+def main():
+    predictions_df, X_train_new, y_train_new = make_out_of_sample_predictions(
+            X=pd.concat([X_train, X_test], axis=0),
+            y=pd.concat([y_train, y_test], axis=0),
+            forecast_horizon=model_config["FORECAST_HORIZON"]
+        )
+
 # Execute the whole pipeline
-predictions_df, X_train_new, y_train_new = make_out_of_sample_predictions(
-    X=pd.concat([X_train, X_test], axis=0),
-    y=pd.concat([y_train, y_test], axis=0),
-    forecast_horizon=model_config["FORECAST_HORIZON"]
-)
+if __name__ == "__main__":
+    main()
+
+    logger.info("Pipeline was sucessful!")

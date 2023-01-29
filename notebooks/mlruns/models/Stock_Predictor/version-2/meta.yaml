@@ -1,0 +1,12 @@
+creation_timestamp: 1675000091756
+current_stage: Staging
+description: null
+last_updated_timestamp: 1675000091757
+name: Stock_Predictor
+run_id: a7f26c5e9d334e1baeb3dd2d8a3940cf
+run_link: null
+source: file:///home/michel/Projects/mlops_practice/notebooks/mlruns/0/a7f26c5e9d334e1baeb3dd2d8a3940cf/artifacts/Stock_Predictor_Experiment_run
+status: READY
+status_message: null
+user_id: null
+version: 2
