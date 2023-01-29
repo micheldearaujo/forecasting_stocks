@@ -14,16 +14,13 @@ install-aws:
 	pip install --upgrade pip &&\
 		pip install -r requirements-aws.txt
 
-test:
-	python -m pytest -vv --cov=hello test_hello.py
-
 lint:
-	pylint --disable=R,C hello.py
+	pylint --disable=R,C *.py
 	
 format:
 	black *.py
 
 clean:
 	rm -rf __pycache__
-	rm -f *.pyc
+	rm -f *.log
 	rm -f *.log
