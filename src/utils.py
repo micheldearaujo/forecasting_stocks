@@ -165,10 +165,14 @@ def train_model(X_train: pd.DataFrame,  y_train: pd.DataFrame, random_state:int=
         y_train,
         )
 
+    # save model
+    print(xgboost_model.feature_names_in_)
+    dump(xgboost_model, f"./models/{model_config['REGISTER_MODEL_NAME']}.joblib")
+
     return xgboost_model
 
 
-def make_out_of_sample_predictions(X:pd.DataFrame, y:pd.Series, forecast_horizon: int) -> pd.DataFrame:
+def validate_model(X:pd.DataFrame, y:pd.Series, forecast_horizon: int) -> pd.DataFrame:
     """
     Make predictions for the next `forecast_horizon` days using a XGBoost model
     
@@ -248,4 +252,86 @@ def make_out_of_sample_predictions(X:pd.DataFrame, y:pd.Series, forecast_horizon
 
     return pred_df
 
+
+def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list: list):
+    """
+    Create a future dataframe for forecasting.
+
+    Parameters:
+        forecast_horizon (int): The number of days to forecast into the future.
+        model_df (pandas dataframe): The dataframe containing the training data.
+
+    Returns:
+        future_df (pandas dataframe): The future dataframe used for forecasting.
+    """
+
+    # create the future dataframe with the specified number of days
+    last_training_day = model_df.Date.max()
+    date_list = [last_training_day + dt.timedelta(days=x+1) for x in range(forecast_horzion)]
+    future_df = pd.DataFrame({"Date": date_list})
+
+    # build the features for the future dataframe using the specified features
+    inference_features_list = features_list[:-1]
+    future_df = build_features(future_df, inference_features_list)
+
+    # filter out weekends from the future dataframe
+    future_df["day_of_week"] = future_df.Date.apply(lambda x: x.day_name())
+    future_df = future_df[future_df["day_of_week"].isin(["Sunday", "Saturday"]) == False]
+    future_df = future_df.drop("day_of_week", axis=1)
+    future_df = future_df.reset_index(drop=True)
+    
+    # Ensure the data types of the features are correct
+    for feature in inference_features_list:
+        future_df[feature] = future_df[feature].astype("int")
+    
+    # set the first lagged price value to the last price from the training data
+    future_df["Close_lag_1"] = 0
+    future_df.loc[future_df.index.min(), "Close_lag_1"] = model_df[model_df["Date"] == last_training_day]['Close'].values[0]
+    
+    return future_df
+
+
+def make_predict(forecast_horizon: int, future_df: pd.DataFrame) -> pd.DataFrame:
+
+    """
+    Make predictions for the next `forecast_horizon` days using a XGBoost model
+    
+    Parameters:
+        X (pandas dataframe): The input data
+        y (pandas dataframe): The target data
+        forecast_horizon (int): Number of days to forecast
+        
+    Returns:
+        None
+    """
+
+    logger.info("Starting the pipeline..")
+
+    future_df_feat = future_df.copy()
+
+    # Create empty list for storing each prediction
+    predictions = []
+
+    # load the model and predict
+    model = load(f"./models/{model_config['REGISTER_MODEL_NAME']}.joblib")
+
+    for day in range(0, forecast_horizon):
+
+        # extract the next day to predict
+        x_inference = pd.DataFrame(future_df_feat.drop("Date", axis=1).loc[day, :]).transpose()
+        prediction = model.predict(x_inference)[0]
+        predictions.append(prediction)
+
+        # get the prediction and input as the lag 1
+        if day != forecast_horizon-1:
+        
+            future_df_feat.loc[day+1, "Close_lag_1"] = prediction
+
+        else:
+            # check if it is the last day, so we stop
+            break
+    
+    future_df_feat["Forecast"] = predictions
+    future_df_feat = future_df_feat[["Date", "Forecast"]].copy()
+    return future_df_feat
 
