@@ -4,11 +4,18 @@ import sys
 sys.path.insert(0, "/home/michel/Projects/mlops_practice/src")
 from utils import *
 
-# Load the raw dataset
+# make the dataset
+PERIOD = '800d'
+INTERVAL = '1d'
+
+STOCK_NAME = str(input("Which stock do you want to track? "))
+make_dataset(STOCK_NAME, PERIOD, INTERVAL)
+
+# load the raw dataset
 stock_df = pd.read_csv("./data/raw/raw_stock_prices.csv", parse_dates=True)
 stock_df['Date'] = pd.to_datetime(stock_df['Date'])
 
-# Perform featurization
+# perform featurization
 features_list = ["day_of_month", "month", "quarter", "Close_lag_1"]
 stock_df_feat = build_features(stock_df, features_list)
 
