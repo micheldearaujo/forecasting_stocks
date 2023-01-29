@@ -26,7 +26,7 @@ Para instalar o projeto localmente
 
 ```python
   
-  python3 src/models/train_model.py
+  python3 src/train_model.py
 
 ```
 
