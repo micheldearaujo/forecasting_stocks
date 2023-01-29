@@ -1,4 +1,7 @@
 alembic==1.9.2
+pytest
+black
+pytest-cov
 anyio @ file:///tmp/build/80754af9/anyio_1644481698350/work/dist
 appdirs==1.4.4
 APScheduler==3.6.3
