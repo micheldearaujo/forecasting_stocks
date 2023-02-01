@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import sys
-sys.path.insert(0, '/home/michel/Projects/mlops_practice/src')
 from utils import *
 
 # Load the dataset
@@ -44,8 +42,4 @@ def build_features(raw_df: pd.DataFrame, features_list: list) -> pd.DataFrame:
     stock_df_featurized.to_csv("./data/processed/processed_stock_prices.csv", index=False)
 
     return stock_df_featurized
-
-
-features_list = ["day_of_month", "month", "quarter", "Close_lag_1"]
-feat_df = build_features(stock_df, features_list)
 
