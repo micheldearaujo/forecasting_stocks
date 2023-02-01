@@ -4,7 +4,7 @@ setup(
     name="src",
     packages=find_packages(),
     version="0.1.0",
-    description="This is a simple Machine Learning project built in order to practice MLOps",
+    description="Forecasting model to predict Stock prices and suggest actions",
     author="michel araujo",
     license="",
 )
