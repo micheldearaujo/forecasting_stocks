@@ -1,6 +1,4 @@
 import sys
-import os
-import inspect
 
 sys.path.insert(0,'.')
 

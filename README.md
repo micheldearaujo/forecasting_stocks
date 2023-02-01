@@ -1,4 +1,6 @@
 
+[![Previsão de ações](https://github.com/micheldearaujo/forecasting_stocks/actions/workflows/main.yml/badge.svg)](https://github.com/micheldearaujo/forecasting_stocks/actions/workflows/main.yml)
+
 # Previsão de preço de ações
 
 O objetivo deste projeto é criar um modelo prescritivo com o objetivo de informar qual é o melhor dia para comprar ou vender ações baseado em parâmetros setados pelo usuário.
