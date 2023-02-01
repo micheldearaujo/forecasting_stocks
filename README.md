@@ -20,14 +20,16 @@ Para instalar o projeto localmente
   python3 -m venv forecasting_stocks
   source forecasting_stocks/bin/activate
   make install
-  make test
   make lint
 ```
 ## Usage/Examples
 
 ```python
-  python3 src/models/train_model.py
-  python3 src/models/predict_model.py
+  mkdir data
+  mkdir data/raw
+  mkdir data/processed
+  python3 src/train_model.py
+  python3 src/predict_model.py
 
 ```
 
