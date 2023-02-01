@@ -1,4 +1,6 @@
 
+[![Previsão de ações](https://github.com/micheldearaujo/forecasting_stocks/actions/workflows/main.yml/badge.svg)](https://github.com/micheldearaujo/forecasting_stocks/actions/workflows/main.yml)
+
 # Previsão de preço de ações
 
 O objetivo deste projeto é criar um modelo prescritivo com o objetivo de informar qual é o melhor dia para comprar ou vender ações baseado em parâmetros setados pelo usuário.
@@ -20,14 +22,16 @@ Para instalar o projeto localmente
   python3 -m venv forecasting_stocks
   source forecasting_stocks/bin/activate
   make install
-  make test
   make lint
 ```
 ## Usage/Examples
 
 ```python
-  python3 src/models/train_model.py
-  python3 src/models/predict_model.py
+  mkdir data
+  mkdir data/raw
+  mkdir data/processed
+  python3 src/train_model.py
+  python3 src/predict_model.py
 
 ```
 

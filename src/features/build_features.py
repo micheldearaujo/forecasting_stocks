@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
+import sys
+sys.path.insert(0,'.')
 
-from utils import *
+from src.utils import *
 
 # Load the dataset
 stock_df = pd.read_csv('./data/raw/raw_stock_prices.csv', parse_dates=True)
