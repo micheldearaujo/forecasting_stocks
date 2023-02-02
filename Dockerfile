@@ -5,7 +5,7 @@ COPY . /stock_forecaster
 
 WORKDIR /stock_forecaster
 
-EXPOSE 8501
+EXPOSE 8080
 
 RUN pip3 install -r requirements.txt
 

@@ -23,8 +23,7 @@ def main():
     Main function that creates a future dataframe, makes predictions, and prints the predictions.
 
     Parameters:
-        stock_df_feat (pandas dataframe) The complete dataset
-
+        None
     Returns:
         None
     """
@@ -38,8 +37,6 @@ def main():
         future_df=future_df
     )
 
-    #predictions_df = predictions_df.set_index("Date")#predictions_df["Date"].apply(lambda x: x.date())
-    
     # Print the predictions
     print(predictions_df)
 
@@ -47,22 +44,15 @@ def main():
     st.write(f"Here are the forecast for {STOCK_NAME}")
     st.write(predictions_df)
 
-    # fig = visualize_forecast(
-    #    pred_df=predictions_df,
-    #    historical_df=stock_df_feat[stock_df_feat['Date'] >= stock_df_feat.Date.max() - dt.timedelta(days=model_config['FORECAST_HORIZON'])],
-    #    stock_name=STOCK_NAME
-    # )
+    # make the figure using plotly
     fig = px.line(
         predictions_df,
         x="Date",
         y="Forecast",
         title=f"Default XGBoost {model_config['FORECAST_HORIZON']-4} days Forecast for {STOCK_NAME}"
     )
-    #lines = alt.Chart(predictions_df).mark_line().encode(x="Date",y="Forecast")
-    #st.altair_chart(
-    #    lines.interactive(),
-    #    use_container_width=True
-    #    )
+
+    # plot it
     st.plotly_chart(
         fig,
         use_container_width=True
