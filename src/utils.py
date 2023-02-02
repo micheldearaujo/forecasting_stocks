@@ -155,8 +155,8 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
     axs.set_xlabel("Date")
     axs.set_ylabel("R$")
 
-    plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now()}.png")
-    plt.show()
+    plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now().date()}.png")
+    #plt.show()
 
 
 def visualize_forecast(pred_df: pd.DataFrame, historical_df: pd.DataFrame, stock_name: str):
