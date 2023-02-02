@@ -27,11 +27,9 @@ Para instalar o projeto localmente
 ## Usage/Examples
 
 ```python
-  mkdir data
-  mkdir data/raw
-  mkdir data/processed
-  python3 src/train_model.py
-  python3 src/predict_model.py
+  python3 src/models/train_model.py
+  python3 src/models/predict_model.py
+  streamlit run src/models/predict_model.py
 
 ```
 
