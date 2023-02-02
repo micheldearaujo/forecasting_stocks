@@ -56,12 +56,13 @@ def test_make_dataset():
     """
 
     # load the raw file to compare
-    #stock_price_df = pd.read_csv('./data/raw/raw_stock_prices.csv', parse_dates=["Date"])
+    # call the make_dataset function
     stock_price_df = make_dataset(STOCK_NAME, PERIOD, INTERVAL)
+
     assert test_stock_df.columns.all() == stock_price_df.columns.all()
     assert isinstance(stock_price_df["Date"].dtype, type(np.dtype("datetime64[ns]")))
     assert isinstance(stock_price_df["Close"].dtype, type(np.dtype("float64")))
-    assert stock_price_df.shape[0] > 730#int(PERIOD[:-1])
+    assert stock_price_df.shape[0] >= int(PERIOD[:-1])
 
 
 def test_build_features():
