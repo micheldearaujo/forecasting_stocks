@@ -26,7 +26,7 @@ from statsmodels.graphics.tsaplots import plot_acf, plot_pacf  #Autocorrelação
 from pmdarima.arima.utils import ndiffs 
 
 # Machine Learning Libraries
-from sklearn.model_selection import train_test_split, TimeSeriesSplit
+from sklearn.model_selection import train_test_split, TimeSeriesSplit, RandomizedSearchCV, GridSearchCV
 from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
 import xgboost as xgb
 

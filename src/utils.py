@@ -102,7 +102,7 @@ def ts_train_test_split(data: pd.DataFrame, target:str, test_size: int):
     return X_train, X_test, y_train, y_test
 
 
-def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model_rmse: float):
+def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model_rmse: float, stock_name: str):
     """
     Creates visualizations of the model validation
 
@@ -152,12 +152,12 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
         sizes=(80, 80), legend=False
     )
 
-    axs.set_title(f"Default XGBoost {model_config['FORECAST_HORIZON']} days Forecast for {STOCK_NAME}\nMAPE: {round(model_mape*100, 2)}% | RMSE: R${model_rmse}")
+    axs.set_title(f"Default XGBoost {model_config['FORECAST_HORIZON']} days Forecast for {stock_name}\nMAPE: {round(model_mape*100, 2)}% | RMSE: R${model_rmse}")
     axs.set_xlabel("Date")
     axs.set_ylabel("R$")
 
-    plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now().date()}.png")
-    #plt.show()
+    #plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now().date()}.png")
+    plt.show()
 
 
 def visualize_forecast(pred_df: pd.DataFrame, historical_df: pd.DataFrame, stock_name: str):
@@ -327,7 +327,7 @@ def validate_model_stepwise(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     return pred_df
 
 
-def validade_model_one_shot(X:pd.DataFrame, y:pd.Series, forecast_horizon: int) -> pd.DataFrame:
+def validade_model_one_shot(X:pd.DataFrame, y:pd.Series, forecast_horizon: int, stock_name: str) -> pd.DataFrame:
     """
     Make predictions for the next `forecast_horizon` days using a XGBoost model.
     This model is validated using One Shot Training, it means that we train the model
@@ -342,8 +342,6 @@ def validade_model_one_shot(X:pd.DataFrame, y:pd.Series, forecast_horizon: int) 
         pred_df: Pandas DataFrame with the forecasted values
     """
 
-    logger.info("Starting the pipeline..")
-
     # Create empty list for storing each prediction
     predictions = []
     actuals = []
@@ -354,10 +352,13 @@ def validade_model_one_shot(X:pd.DataFrame, y:pd.Series, forecast_horizon: int) 
     y_train = y.iloc[:-forecast_horizon]
     
     # train the model once
-    xgboost_model = train_model(
-        X_train.drop("Date", axis=1),
-        y_train
-    )
+    # xgboost_model = train_model(
+    #     X_train.drop("Date", axis=1),
+    #     y_train
+    # )
+
+    # load the best model
+    xgboost_model = load(f"./models/{stock_name}_xgb.joblib")
 
     # Iterate over the dataset to perform predictions over the forecast horizon, one by one.
     # After forecasting the next step, we need to update the "lag" features with the last forecasted
@@ -381,14 +382,14 @@ def validade_model_one_shot(X:pd.DataFrame, y:pd.Series, forecast_horizon: int) 
             
             # we need to update the X_test["Close_lag_1"] value, because
             # it should be equal to the last prediction (the "yesterday" value)
-            X_test.iloc[:, -1] = predictions[-1]            
+            X_test.iat[0, -1] = predictions[-1]            
 
         else:
             pass
     
         # make prediction
         prediction = xgboost_model.predict(X_test.drop("Date", axis=1))
-        print(f"Day: {X_test['Date'].max()} | Prediction: {prediction[0]} | Close_Lag_1: {X_test['Close_lag_1'].values[0]}")
+        #print(f"Day: {X_test['Date'].max()} | Prediction: {prediction[0]} | Close_Lag_1: {X_test['Close_lag_1'].values[0]}")
 
         # store the results
         predictions.append(prediction[0])
@@ -401,7 +402,7 @@ def validade_model_one_shot(X:pd.DataFrame, y:pd.Series, forecast_horizon: int) 
  
     pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["Date", 'Actual', 'Forecast'])
     pred_df["Forecast"] = pred_df["Forecast"].astype("float64")
-    #visualize_validation_results(pred_df, model_mape, model_rmse)
+    visualize_validation_results(pred_df, model_mape, model_rmse, stock_name)
     
     return pred_df
 
