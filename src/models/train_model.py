@@ -19,7 +19,7 @@ stock_df_feat = build_features(stock_df, features_list)
 
 # Execute the whole pipeline
 if __name__ == "__main__":
-
+    logger.warning("Warning!")
     # train model on full historical data
     xgboost_model = train_model(
         X_train=stock_df_feat.drop([model_config["TARGET_NAME"], "Date"], axis=1),
