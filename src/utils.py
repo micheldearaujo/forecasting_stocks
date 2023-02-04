@@ -247,7 +247,7 @@ def train_model(X_train: pd.DataFrame,  y_train: pd.DataFrame, random_state:int=
     return xgboost_model
 
 
-def validate_model(X: pd.DataFrame, y: pd.Series, forecast_horizon: int) -> pd.DataFrame:
+def validate_model_stepwise(X: pd.DataFrame, y: pd.Series, forecast_horizon: int) -> pd.DataFrame:
     """
     Make predictions for the next `forecast_horizon` days using a XGBoost model
     
@@ -324,6 +324,85 @@ def validate_model(X: pd.DataFrame, y: pd.Series, forecast_horizon: int) -> pd.D
     pred_df["Forecast"] = pred_df["Forecast"].astype("float64")
     #visualize_validation_results(pred_df, model_mape, model_rmse)
 
+    return pred_df
+
+
+def validade_model_one_shot(X:pd.DataFrame, y:pd.Series, forecast_horizon: int) -> pd.DataFrame:
+    """
+    Make predictions for the next `forecast_horizon` days using a XGBoost model.
+    This model is validated using One Shot Training, it means that we train the model
+    once, and them perform the `forecast_horizon` predictions only loading the mdoel.
+    
+    Parameters:
+        X (pandas dataframe): The input data
+        y (pandas dataframe): The target data
+        forecast_horizon (int): Number of days to forecast
+        
+    Returns:
+        pred_df: Pandas DataFrame with the forecasted values
+    """
+
+    logger.info("Starting the pipeline..")
+
+    # Create empty list for storing each prediction
+    predictions = []
+    actuals = []
+    dates = []
+    
+    # get the one-shot training set
+    X_train = X.iloc[:-forecast_horizon, :]
+    y_train = y.iloc[:-forecast_horizon]
+    
+    # train the model once
+    xgboost_model = train_model(
+        X_train.drop("Date", axis=1),
+        y_train
+    )
+
+    # Iterate over the dataset to perform predictions over the forecast horizon, one by one.
+    # After forecasting the next step, we need to update the "lag" features with the last forecasted
+    # value
+    for day in range(forecast_horizon-4, 0, -1):
+        
+        if day != 1:
+            # the testing set will be the next day after the training and we use the complete dataset
+            X_test = X.iloc[-day:-day+1,:]
+            y_test = y.iloc[-day:-day+1]
+
+        else:
+            # need to change the syntax for the last day (for -1:-2 will not work)
+            X_test = X.iloc[-day:,:]
+            y_test = y.iloc[-day:]
+
+        # only the first iteration will use the true value of Close_lag_1
+        # because the following ones will use the last predicted value as true value
+        # so we simulate the process of predicting out-of-sample
+        if len(predictions) != 0:
+            
+            # we need to update the X_test["Close_lag_1"] value, because
+            # it should be equal to the last prediction (the "yesterday" value)
+            X_test.iloc[:, -1] = predictions[-1]            
+
+        else:
+            pass
+    
+        # make prediction
+        prediction = xgboost_model.predict(X_test.drop("Date", axis=1))
+        print(f"Day: {X_test['Date'].max()} | Prediction: {prediction[0]} | Close_Lag_1: {X_test['Close_lag_1'].values[0]}")
+
+        # store the results
+        predictions.append(prediction[0])
+        actuals.append(y_test.values[0])
+        dates.append(X_test["Date"].max())
+
+    # Calculate the resulting metric
+    model_mape = round(mean_absolute_percentage_error(actuals, predictions), 4)
+    model_rmse = round(np.sqrt(mean_squared_error(actuals, predictions)), 2)
+ 
+    pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["Date", 'Actual', 'Forecast'])
+    pred_df["Forecast"] = pred_df["Forecast"].astype("float64")
+    #visualize_validation_results(pred_df, model_mape, model_rmse)
+    
     return pred_df
 
 
