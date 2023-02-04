@@ -10,6 +10,7 @@ STOCK_NAME = 'BOVA11.SA'  #str(input("Which stock do you want to track? "))
 
 logger.info("Starting the inference pipeline..")
 
+
 # load the raw dataset
 stock_df = pd.read_csv("./data/raw/raw_stock_prices.csv", parse_dates=True)
 stock_df['Date'] = pd.to_datetime(stock_df['Date'])

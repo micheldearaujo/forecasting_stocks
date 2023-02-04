@@ -30,7 +30,7 @@ def make_dataset(stock_name: str, period: str, interval: str):
     stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
     stock_price_df['Date'] = stock_price_df['Date'].apply(lambda x: x.date())
     stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
-    stock_price_df.to_csv('./data/raw/raw_stock_prices.csv', index=False)
+    stock_price_df.to_csv(os.path.join(RAW_DATA_PATH, 'raw_stock_prices.csv'), index=False)#'./data/raw/raw_stock_prices.csv', index=False)
 
     return stock_price_df
 
@@ -70,7 +70,8 @@ def build_features(raw_df: pd.DataFrame, features_list: list) -> pd.DataFrame:
     stock_df_featurized = stock_df_featurized.dropna()
 
     # Save the dataset
-    stock_df_featurized.to_csv("./data/processed/processed_stock_prices.csv", index=False)
+    #stock_df_featurized.to_csv("./data/processed/processed_stock_prices.csv", index=False)
+    stock_df_featurized.to_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), index=False)
 
     return stock_df_featurized
 
@@ -246,7 +247,7 @@ def train_model(X_train: pd.DataFrame,  y_train: pd.DataFrame, random_state:int=
     return xgboost_model
 
 
-def validate_model(X:pd.DataFrame, y:pd.Series, forecast_horizon: int) -> pd.DataFrame:
+def validate_model(X: pd.DataFrame, y: pd.Series, forecast_horizon: int) -> pd.DataFrame:
     """
     Make predictions for the next `forecast_horizon` days using a XGBoost model
     
@@ -383,7 +384,7 @@ def make_predict(forecast_horizon: int, future_df: pd.DataFrame) -> pd.DataFrame
     predictions = []
 
     # load the model and predict
-    model = load(f"./models/{model_config['REGISTER_MODEL_NAME']}.joblib")
+    model = load(os.path.join(MODELS_PATH, f"{model_config['REGISTER_MODEL_NAME']}.joblib"))
 
     for day in range(0, forecast_horizon):
 

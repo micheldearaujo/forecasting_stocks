@@ -62,5 +62,15 @@ features_list = ["day_of_month", "month", "quarter", "Close_lag_1"]
 # Configura o logging
 log_format = "[%(name)s][%(levelname)-6s] %(message)s"
 logging.basicConfig(format=log_format)
-logger = logging.getLogger("describe")
+logger = logging.getLogger("Status")
 logger.setLevel(logging.INFO)
+
+
+# paths
+ROOT_DATA_PATH = "./data"
+RAW_DATA_PATH = os.path.join(ROOT_DATA_PATH, "raw")
+PROCESSED_DATA_PATH = os.path.join(ROOT_DATA_PATH, "processed")
+EXTERNAL_DATA_PATH = os.path.join(ROOT_DATA_PATH, "external")
+INTERIM_DATA_PATH = os.path.join(ROOT_DATA_PATH, "interim")
+
+MODELS_PATH = "./models"
