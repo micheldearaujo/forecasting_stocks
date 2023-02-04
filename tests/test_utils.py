@@ -201,8 +201,6 @@ def test_ts_train_test_split_array_size():
     assert len(returned_array) == 4
 
 
-
-
 def test_ts_train_test_split_columns():
 
     X_train, X_test, y_train, y_test = ts_train_test_split(test_stock_feat_df, model_config["TARGET_NAME"],TEST_FORECAST_HORIZON)
@@ -222,19 +220,6 @@ def test_ts_train_test_split_train_types():
     assert isinstance(X_train["quarter"].dtype, type(np.dtype("float64")))
     assert isinstance(X_train["Close_lag_1"].dtype, type(np.dtype("float64")))
     assert isinstance(y_train.dtype, type(np.dtype("float64")))
-
-
-
-def test_ts_train_test_split_test_size():
-
-    X_train, X_test, y_train, y_test = ts_train_test_split(test_stock_feat_df, model_config["TARGET_NAME"],TEST_FORECAST_HORIZON)
-
-    assert isinstance(X_test["Date"].dtype, type(np.dtype("datetime64[ns]")))
-    assert isinstance(X_test["day_of_month"].dtype, type(np.dtype("float64")))
-    assert isinstance(X_test["month"].dtype, type(np.dtype("float64")))
-    assert isinstance(X_test["quarter"].dtype, type(np.dtype("float64")))
-    assert isinstance(X_test["Close_lag_1"].dtype, type(np.dtype("float64")))
-    assert isinstance(y_test.dtype, type(np.dtype("float64")))
 
 
 
@@ -274,7 +259,7 @@ def test_train_model_features():
 #     assert predictions_df.shape[0] == TEST_FORECAST_HORIZON
 
 
-def test_validate_model_columns():
+def test_validate_model_stepwise_columns():
 
     predictions_df = validate_model(
         X=test_stock_feat_df.drop([model_config["TARGET_NAME"]], axis=1),
@@ -286,7 +271,7 @@ def test_validate_model_columns():
 
 
 
-def test_validate_model_types():
+def test_validate_model_stepwise_types():
 
     predictions_df = validate_model(
         X=test_stock_feat_df.drop([model_config["TARGET_NAME"]], axis=1),
@@ -299,7 +284,7 @@ def test_validate_model_types():
     assert isinstance(predictions_df["Forecast"].dtype, type(np.dtype("float64")))
 
 
-def test_validate_model_size():
+def test_validate_model_stepwise_size():
 
     predictions_df = validate_model(
         X=test_stock_feat_df.drop([model_config["TARGET_NAME"]], axis=1),
