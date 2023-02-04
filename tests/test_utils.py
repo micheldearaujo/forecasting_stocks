@@ -91,7 +91,6 @@ def test_make_dataset_types():
     assert isinstance(stock_price_df["Close"].dtype, type(np.dtype("float64")))
 
 
-
 def test_make_dataset_size():
     """
     tests if the make_dataset() is download
@@ -134,7 +133,6 @@ def test_build_features_types():
     assert isinstance(stock_df_feat["quarter"].dtype, type(np.dtype("float64")))
     assert isinstance(stock_df_feat["Close_lag_1"].dtype, type(np.dtype("float64")))
     
-
 
 def test_build_features_size():
     """
@@ -207,7 +205,6 @@ def test_ts_train_test_split_columns():
 
     assert test_stock_feat_df.columns.all() == X_train.columns.all()
     assert test_stock_feat_df.columns.all() == X_test.columns.all()
-    
 
 
 def test_ts_train_test_split_train_types():
@@ -220,7 +217,6 @@ def test_ts_train_test_split_train_types():
     assert isinstance(X_train["quarter"].dtype, type(np.dtype("float64")))
     assert isinstance(X_train["Close_lag_1"].dtype, type(np.dtype("float64")))
     assert isinstance(y_train.dtype, type(np.dtype("float64")))
-
 
 
 # def test_train_model():
@@ -261,7 +257,7 @@ def test_train_model_features():
 
 def test_validate_model_stepwise_columns():
 
-    predictions_df = validate_model(
+    predictions_df = validate_model_stepwise(
         X=test_stock_feat_df.drop([model_config["TARGET_NAME"]], axis=1),
         y=test_stock_feat_df[model_config["TARGET_NAME"]],
         forecast_horizon=TEST_FORECAST_HORIZON
@@ -270,10 +266,9 @@ def test_validate_model_stepwise_columns():
     assert test_predictions_df.columns.all() == predictions_df.columns.all()
 
 
-
 def test_validate_model_stepwise_types():
 
-    predictions_df = validate_model(
+    predictions_df = validate_model_stepwise(
         X=test_stock_feat_df.drop([model_config["TARGET_NAME"]], axis=1),
         y=test_stock_feat_df[model_config["TARGET_NAME"]],
         forecast_horizon=TEST_FORECAST_HORIZON
@@ -286,7 +281,7 @@ def test_validate_model_stepwise_types():
 
 def test_validate_model_stepwise_size():
 
-    predictions_df = validate_model(
+    predictions_df = validate_model_stepwise(
         X=test_stock_feat_df.drop([model_config["TARGET_NAME"]], axis=1),
         y=test_stock_feat_df[model_config["TARGET_NAME"]],
         forecast_horizon=TEST_FORECAST_HORIZON
@@ -336,7 +331,6 @@ def test_make_future_df_types():
     assert isinstance(future_df["Close_lag_1"].dtype, type(np.dtype("float64")))
 
 
-
 def test_make_future_df_size():
 
     # Create the future dataframe using the make_future_df function
@@ -370,7 +364,6 @@ def test_make_predict_columns():
     )
     
     assert test_predictions_df.columns.all() == predictions_df.columns.all()
-
 
 
 def test_make_predict_types():
