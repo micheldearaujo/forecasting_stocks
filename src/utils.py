@@ -487,3 +487,30 @@ def make_predict(forecast_horizon: int, future_df: pd.DataFrame) -> pd.DataFrame
     future_df_feat = future_df_feat[["Date", "Forecast"]].copy()
     return future_df_feat
 
+
+def time_series_grid_search_xgb(data, target, param_grid, stock_name, n_splits=5, random_state=0):
+    """
+    Performs time series hyperparameter tuning on an XGBoost model using grid search.
+    
+    Parameters:
+    - data (pd.DataFrame): The input feature d-ata
+    - target (pd.Series): The target values
+    - param_grid (dict): Dictionary of hyperparameters to search over
+    - n_splits (int): Number of folds for cross-validation (default: 5)
+    - random_state (int): Seed for the random number generator (default: 0)
+    
+    Returns:
+    - best_model (xgb.XGBRegressor): The best XGBoost model found by the grid search
+    """
+
+    tscv = TimeSeriesSplit(n_splits=n_splits)
+    model = xgb.XGBRegressor(random_state=random_state)
+    grid_search = GridSearchCV(model, param_grid, cv=tscv, n_jobs=-1, scoring='neg_mean_squared_error', verbose=1)
+    grid_search.fit(data, target)
+    
+    best_model = grid_search.best_estimator_
+    best_params = grid_search.best_params_
+
+    # save the best model
+    dump(best_model, f"./models/{stock_name}_xgb.joblib")
+    return best_model, best_params, np.sqrt(np.abs(grid_search.best_score_))
