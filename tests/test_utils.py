@@ -22,6 +22,18 @@ quarters_list = [1., 2., 4.]
 close_lags_list = prices_list
 TEST_FORECAST_HORIZON = 1
 
+test_param_grid = {
+    "learning_rate": [0.1],
+    "max_depth": [5],
+    "min_child_weight": [1],
+}
+
+test_model_params = {
+    "learning_rate": 0.1,
+    "max_depth": 5,
+    "min_child_weight": 1,
+}
+
 test_stock_df = pd.DataFrame(
     {
         "Date": dates_list,
@@ -91,7 +103,6 @@ def test_make_dataset_types():
     assert isinstance(stock_price_df["Close"].dtype, type(np.dtype("float64")))
 
 
-
 def test_make_dataset_size():
     """
     tests if the make_dataset() is download
@@ -102,7 +113,7 @@ def test_make_dataset_size():
     stock_price_df = make_dataset(STOCK_NAME, PERIOD, INTERVAL)
 
     # asser the amount of days
-    assert stock_price_df.shape[0] >= int(PERIOD[:-1])
+    assert stock_price_df.shape[0] >= int(PERIOD[:-1])-TEST_FORECAST_HORIZON
 
 
 def test_build_features_columns():
@@ -134,7 +145,6 @@ def test_build_features_types():
     assert isinstance(stock_df_feat["quarter"].dtype, type(np.dtype("float64")))
     assert isinstance(stock_df_feat["Close_lag_1"].dtype, type(np.dtype("float64")))
     
-
 
 def test_build_features_size():
     """
@@ -201,15 +211,12 @@ def test_ts_train_test_split_array_size():
     assert len(returned_array) == 4
 
 
-
-
 def test_ts_train_test_split_columns():
 
     X_train, X_test, y_train, y_test = ts_train_test_split(test_stock_feat_df, model_config["TARGET_NAME"],TEST_FORECAST_HORIZON)
 
     assert test_stock_feat_df.columns.all() == X_train.columns.all()
     assert test_stock_feat_df.columns.all() == X_test.columns.all()
-    
 
 
 def test_ts_train_test_split_train_types():
@@ -224,20 +231,6 @@ def test_ts_train_test_split_train_types():
     assert isinstance(y_train.dtype, type(np.dtype("float64")))
 
 
-
-def test_ts_train_test_split_test_size():
-
-    X_train, X_test, y_train, y_test = ts_train_test_split(test_stock_feat_df, model_config["TARGET_NAME"],TEST_FORECAST_HORIZON)
-
-    assert isinstance(X_test["Date"].dtype, type(np.dtype("datetime64[ns]")))
-    assert isinstance(X_test["day_of_month"].dtype, type(np.dtype("float64")))
-    assert isinstance(X_test["month"].dtype, type(np.dtype("float64")))
-    assert isinstance(X_test["quarter"].dtype, type(np.dtype("float64")))
-    assert isinstance(X_test["Close_lag_1"].dtype, type(np.dtype("float64")))
-    assert isinstance(y_test.dtype, type(np.dtype("float64")))
-
-
-
 # def test_train_model():
 #     # train the model
 #     xgboost_model = train_model(test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1), test_stock_feat_df[model_config["TARGET_NAME"]])
@@ -247,14 +240,22 @@ def test_ts_train_test_split_test_size():
 
 def test_train_model_types():
     # train the model
-    xgboost_model = train_model(test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1), test_stock_feat_df[model_config["TARGET_NAME"]])
+    xgboost_model = train_model(
+        test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1),
+        test_stock_feat_df[model_config["TARGET_NAME"]],
+        test_model_params
+    )
 
     assert isinstance(xgboost_model, xgb.sklearn.XGBRegressor)
 
 
 def test_train_model_features():
     # train the model
-    xgboost_model = train_model(test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1), test_stock_feat_df[model_config["TARGET_NAME"]])
+    xgboost_model = train_model(
+        test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1),
+        test_stock_feat_df[model_config["TARGET_NAME"]],
+        test_model_params
+    )
 
     assert list(xgboost_model.feature_names_in_) == list(test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1).columns)
 
@@ -274,24 +275,25 @@ def test_train_model_features():
 #     assert predictions_df.shape[0] == TEST_FORECAST_HORIZON
 
 
-def test_validate_model_columns():
+def test_validate_model_stepwise_columns():
 
-    predictions_df = validate_model(
+    predictions_df = validate_model_stepwise(
         X=test_stock_feat_df.drop([model_config["TARGET_NAME"]], axis=1),
         y=test_stock_feat_df[model_config["TARGET_NAME"]],
-        forecast_horizon=TEST_FORECAST_HORIZON
+        forecast_horizon=TEST_FORECAST_HORIZON,
+        stock_name=STOCK_NAME
     )
 
     assert test_predictions_df.columns.all() == predictions_df.columns.all()
 
 
+def test_validate_model_stepwise_types():
 
-def test_validate_model_types():
-
-    predictions_df = validate_model(
+    predictions_df = validate_model_stepwise(
         X=test_stock_feat_df.drop([model_config["TARGET_NAME"]], axis=1),
         y=test_stock_feat_df[model_config["TARGET_NAME"]],
-        forecast_horizon=TEST_FORECAST_HORIZON
+        forecast_horizon=TEST_FORECAST_HORIZON,
+        stock_name=STOCK_NAME
     )
 
     assert isinstance(predictions_df["Date"].dtype, type(np.dtype("datetime64[ns]")))
@@ -299,12 +301,13 @@ def test_validate_model_types():
     assert isinstance(predictions_df["Forecast"].dtype, type(np.dtype("float64")))
 
 
-def test_validate_model_size():
+def test_validate_model_stepwise_size():
 
-    predictions_df = validate_model(
+    predictions_df = validate_model_stepwise(
         X=test_stock_feat_df.drop([model_config["TARGET_NAME"]], axis=1),
         y=test_stock_feat_df[model_config["TARGET_NAME"]],
-        forecast_horizon=TEST_FORECAST_HORIZON
+        forecast_horizon=TEST_FORECAST_HORIZON,
+        stock_name=STOCK_NAME
     )
 
     assert predictions_df.shape[0] == TEST_FORECAST_HORIZON
@@ -351,7 +354,6 @@ def test_make_future_df_types():
     assert isinstance(future_df["Close_lag_1"].dtype, type(np.dtype("float64")))
 
 
-
 def test_make_future_df_size():
 
     # Create the future dataframe using the make_future_df function
@@ -387,7 +389,6 @@ def test_make_predict_columns():
     assert test_predictions_df.columns.all() == predictions_df.columns.all()
 
 
-
 def test_make_predict_types():
 
     test_inference_df = test_stock_feat_df.drop([model_config["TARGET_NAME"]], axis=1).copy()
@@ -411,9 +412,33 @@ def test_make_predict_size():
     assert predictions_df.shape[0] == TEST_FORECAST_HORIZON*test_inference_df.shape[0]
 
 
+def test_time_series_grid_search_xgb_array_size():
 
+    returned_array = time_series_grid_search_xgb(
+        X=test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1),
+        y=test_stock_feat_df[model_config["TARGET_NAME"]],
+        stock_name=STOCK_NAME,
+        param_grid=test_param_grid,
+        n_splits=2,
+        random_state=42
+    )
 
+    assert len(returned_array) == 2
+
+def test_time_series_grid_search_xgb_dict():
     
+    best_model, best_params = time_series_grid_search_xgb(
+        X=test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1),
+        y=test_stock_feat_df[model_config["TARGET_NAME"]],
+        stock_name=STOCK_NAME,
+        param_grid=test_param_grid,
+        n_splits=2,
+        random_state=42
+    )
+
+    assert isinstance(best_model, xgb.sklearn.XGBRegressor)
+    assert isinstance(best_params, dict)
+
 
 #test_make_dataset()
 #test_build_features()

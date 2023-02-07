@@ -26,7 +26,7 @@ from statsmodels.graphics.tsaplots import plot_acf, plot_pacf  #Autocorrelação
 from pmdarima.arima.utils import ndiffs 
 
 # Machine Learning Libraries
-from sklearn.model_selection import train_test_split, TimeSeriesSplit
+from sklearn.model_selection import train_test_split, TimeSeriesSplit, RandomizedSearchCV, GridSearchCV
 from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
 import xgboost as xgb
 
@@ -74,3 +74,14 @@ EXTERNAL_DATA_PATH = os.path.join(ROOT_DATA_PATH, "external")
 INTERIM_DATA_PATH = os.path.join(ROOT_DATA_PATH, "interim")
 
 MODELS_PATH = "./models"
+
+param_grid = {
+    "n_estimators": [40, 100, 200, 300, 400],
+    "max_depth": [3, 5, 7, 9, 12],
+    "learning_rate": [0.2, 0.3, 0.1, 0.01, 0.001],
+    "subsample": [0.5, 0.7, 1.0],
+    "colsample_bytree": [0.5, 0.7, 1.0],
+    "gamma": [0, 0.25, 0.5, 1.0],
+    "reg_alpha": [0, 0.25, 0.5, 1.0],
+    "reg_lambda": [0, 0.25, 0.5, 1.0],
+}
