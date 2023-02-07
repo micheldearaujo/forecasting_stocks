@@ -156,7 +156,7 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
     axs.set_xlabel("Date")
     axs.set_ylabel("R$")
 
-    #plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now().date()}.png")
+    plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now().date()}.png")
     plt.show()
 
 
@@ -219,7 +219,7 @@ def visualize_forecast(pred_df: pd.DataFrame, historical_df: pd.DataFrame, stock
     return fig
 
 
-def train_model(X_train: pd.DataFrame,  y_train: pd.DataFrame, random_state:int=42):
+def train_model(X_train: pd.DataFrame,  y_train: pd.DataFrame, params):
     """
     Trains a XGBoost model for Forecasting
     
@@ -232,7 +232,7 @@ def train_model(X_train: pd.DataFrame,  y_train: pd.DataFrame, random_state:int=
 
     # create the model
     xgboost_model = xgb.XGBRegressor(
-        random_state=random_state,
+        **params
         )
 
     # train the model
@@ -247,7 +247,7 @@ def train_model(X_train: pd.DataFrame,  y_train: pd.DataFrame, random_state:int=
     return xgboost_model
 
 
-def validate_model_stepwise(X: pd.DataFrame, y: pd.Series, forecast_horizon: int) -> pd.DataFrame:
+def validate_model_stepwise(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, stock_name: str) -> pd.DataFrame:
     """
     Make predictions for the next `forecast_horizon` days using a XGBoost model
     
@@ -304,9 +304,10 @@ def validate_model_stepwise(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         else:
             pass
         
-        
+        xgboost_model = load(f"./models/{stock_name}_xgb.joblib")
+        parameters = xgboost_model.get_xgb_params()
         # train the model
-        xgboost_model = train_model(X_train.drop("Date", axis=1), y_train)
+        xgboost_model = train_model(X_train.drop("Date", axis=1), y_train, params=parameters)
 
         # make prediction
         prediction = xgboost_model.predict(X_test.drop("Date", axis=1))
@@ -327,7 +328,7 @@ def validate_model_stepwise(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     return pred_df
 
 
-def validade_model_one_shot(X:pd.DataFrame, y:pd.Series, forecast_horizon: int, stock_name: str) -> pd.DataFrame:
+def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, stock_name: str) -> pd.DataFrame:
     """
     Make predictions for the next `forecast_horizon` days using a XGBoost model.
     This model is validated using One Shot Training, it means that we train the model
@@ -351,14 +352,17 @@ def validade_model_one_shot(X:pd.DataFrame, y:pd.Series, forecast_horizon: int, 
     X_train = X.iloc[:-forecast_horizon, :]
     y_train = y.iloc[:-forecast_horizon]
     
-    # train the model once
-    # xgboost_model = train_model(
-    #     X_train.drop("Date", axis=1),
-    #     y_train
-    # )
-
     # load the best model
     xgboost_model = load(f"./models/{stock_name}_xgb.joblib")
+
+    parameters = xgboost_model.get_xgb_params()
+
+    # fit the model again with the best parameters
+    xgboost_model = train_model(
+        X_train.drop("Date", axis=1),
+        y_train,
+        parameters
+    )
 
     # Iterate over the dataset to perform predictions over the forecast horizon, one by one.
     # After forecasting the next step, we need to update the "lag" features with the last forecasted
@@ -389,7 +393,6 @@ def validade_model_one_shot(X:pd.DataFrame, y:pd.Series, forecast_horizon: int, 
     
         # make prediction
         prediction = xgboost_model.predict(X_test.drop("Date", axis=1))
-        #print(f"Day: {X_test['Date'].max()} | Prediction: {prediction[0]} | Close_Lag_1: {X_test['Close_lag_1'].values[0]}")
 
         # store the results
         predictions.append(prediction[0])
@@ -488,29 +491,31 @@ def make_predict(forecast_horizon: int, future_df: pd.DataFrame) -> pd.DataFrame
     return future_df_feat
 
 
-def time_series_grid_search_xgb(data, target, param_grid, stock_name, n_splits=5, random_state=0):
+def time_series_grid_search_xgb(X, y, param_grid, stock_name, n_splits=5, random_state=0):
     """
     Performs time series hyperparameter tuning on an XGBoost model using grid search.
     
     Parameters:
-    - data (pd.DataFrame): The input feature d-ata
-    - target (pd.Series): The target values
+    - X (pd.DataFrame): The input feature data
+    - y (pd.Series): The target values
     - param_grid (dict): Dictionary of hyperparameters to search over
     - n_splits (int): Number of folds for cross-validation (default: 5)
     - random_state (int): Seed for the random number generator (default: 0)
     
     Returns:
     - best_model (xgb.XGBRegressor): The best XGBoost model found by the grid search
+    - best_params (dict): The best hyperparameters found by the grid search
     """
 
+    # perform time series cross-validation
     tscv = TimeSeriesSplit(n_splits=n_splits)
     model = xgb.XGBRegressor(random_state=random_state)
-    grid_search = GridSearchCV(model, param_grid, cv=tscv, n_jobs=-1, scoring='neg_mean_squared_error', verbose=1)
-    grid_search.fit(data, target)
+    grid_search = GridSearchCV(model, param_grid, cv=tscv, n_jobs=-1, scoring='neg_mean_absolute_error', verbose=1)
+    grid_search.fit(X, y)
     
     best_model = grid_search.best_estimator_
     best_params = grid_search.best_params_
 
     # save the best model
     dump(best_model, f"./models/{stock_name}_xgb.joblib")
-    return best_model, best_params, np.sqrt(np.abs(grid_search.best_score_))
+    return best_model, best_params

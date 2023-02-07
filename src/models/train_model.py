@@ -20,10 +20,15 @@ if __name__ == "__main__":
     # perform featurization
     stock_df_feat = build_features(stock_df, features_list)
 
+    # load the model parameters
+    xgboost_model = load(f"./models/{STOCK_NAME}_xgb.joblib")
+    parameters = xgboost_model.get_xgb_params()
+
     # train model on full historical data
     xgboost_model = train_model(
         X_train=stock_df_feat.drop([model_config["TARGET_NAME"], "Date"], axis=1),
-        y_train=stock_df_feat[model_config["TARGET_NAME"]]
+        y_train=stock_df_feat[model_config["TARGET_NAME"]],
+        params=parameters
     )
 
     logger.info("Training Pipeline was sucessful!")

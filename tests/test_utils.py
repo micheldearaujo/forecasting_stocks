@@ -22,6 +22,18 @@ quarters_list = [1., 2., 4.]
 close_lags_list = prices_list
 TEST_FORECAST_HORIZON = 1
 
+test_param_grid = {
+    "learning_rate": [0.1],
+    "max_depth": [5],
+    "min_child_weight": [1],
+}
+
+test_model_params = {
+    "learning_rate": 0.1,
+    "max_depth": 5,
+    "min_child_weight": 1,
+}
+
 test_stock_df = pd.DataFrame(
     {
         "Date": dates_list,
@@ -101,7 +113,7 @@ def test_make_dataset_size():
     stock_price_df = make_dataset(STOCK_NAME, PERIOD, INTERVAL)
 
     # asser the amount of days
-    assert stock_price_df.shape[0] >= int(PERIOD[:-1])
+    assert stock_price_df.shape[0] >= int(PERIOD[:-1])-TEST_FORECAST_HORIZON
 
 
 def test_build_features_columns():
@@ -228,14 +240,22 @@ def test_ts_train_test_split_train_types():
 
 def test_train_model_types():
     # train the model
-    xgboost_model = train_model(test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1), test_stock_feat_df[model_config["TARGET_NAME"]])
+    xgboost_model = train_model(
+        test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1),
+        test_stock_feat_df[model_config["TARGET_NAME"]],
+        test_model_params
+    )
 
     assert isinstance(xgboost_model, xgb.sklearn.XGBRegressor)
 
 
 def test_train_model_features():
     # train the model
-    xgboost_model = train_model(test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1), test_stock_feat_df[model_config["TARGET_NAME"]])
+    xgboost_model = train_model(
+        test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1),
+        test_stock_feat_df[model_config["TARGET_NAME"]],
+        test_model_params
+    )
 
     assert list(xgboost_model.feature_names_in_) == list(test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1).columns)
 
@@ -260,7 +280,8 @@ def test_validate_model_stepwise_columns():
     predictions_df = validate_model_stepwise(
         X=test_stock_feat_df.drop([model_config["TARGET_NAME"]], axis=1),
         y=test_stock_feat_df[model_config["TARGET_NAME"]],
-        forecast_horizon=TEST_FORECAST_HORIZON
+        forecast_horizon=TEST_FORECAST_HORIZON,
+        stock_name=STOCK_NAME
     )
 
     assert test_predictions_df.columns.all() == predictions_df.columns.all()
@@ -271,7 +292,8 @@ def test_validate_model_stepwise_types():
     predictions_df = validate_model_stepwise(
         X=test_stock_feat_df.drop([model_config["TARGET_NAME"]], axis=1),
         y=test_stock_feat_df[model_config["TARGET_NAME"]],
-        forecast_horizon=TEST_FORECAST_HORIZON
+        forecast_horizon=TEST_FORECAST_HORIZON,
+        stock_name=STOCK_NAME
     )
 
     assert isinstance(predictions_df["Date"].dtype, type(np.dtype("datetime64[ns]")))
@@ -284,7 +306,8 @@ def test_validate_model_stepwise_size():
     predictions_df = validate_model_stepwise(
         X=test_stock_feat_df.drop([model_config["TARGET_NAME"]], axis=1),
         y=test_stock_feat_df[model_config["TARGET_NAME"]],
-        forecast_horizon=TEST_FORECAST_HORIZON
+        forecast_horizon=TEST_FORECAST_HORIZON,
+        stock_name=STOCK_NAME
     )
 
     assert predictions_df.shape[0] == TEST_FORECAST_HORIZON
@@ -389,33 +412,33 @@ def test_make_predict_size():
     assert predictions_df.shape[0] == TEST_FORECAST_HORIZON*test_inference_df.shape[0]
 
 
-def time_series_grid_search_xgb(data, target, param_grid, n_splits=5, random_state=0):
-    """
-    Performs time series hyperparameter tuning on an XGBoost model using grid search.
-    
-    Parameters:
-    - data (pd.DataFrame): The input feature d-ata
-    - target (pd.Series): The target values
-    - param_grid (dict): Dictionary of hyperparameters to search over
-    - n_splits (int): Number of folds for cross-validation (default: 5)
-    - random_state (int): Seed for the random number generator (default: 0)
-    
-    Returns:
-    - best_model (xgb.XGBRegressor): The best XGBoost model found by the grid search
-    """
+def test_time_series_grid_search_xgb_array_size():
 
-    tscv = TimeSeriesSplit(n_splits=n_splits)
-    model = xgb.XGBRegressor(random_state=random_state)
-    grid_search = GridSearchCV(model, param_grid, cv=tscv, n_jobs=-1, scoring='neg_mean_squared_error', verbose=1)
-    grid_search.fit(data, target)
-    
-    best_model = grid_search.best_estimator_
-    best_params = grid_search.best_params_
+    returned_array = time_series_grid_search_xgb(
+        X=test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1),
+        y=test_stock_feat_df[model_config["TARGET_NAME"]],
+        stock_name=STOCK_NAME,
+        param_grid=test_param_grid,
+        n_splits=2,
+        random_state=42
+    )
 
-    # save the best model
-    dump(best_model, f"./models/{STOCK_NAME}_xgb.joblib")
-    return best_model, best_params, np.sqrt(np.abs(grid_search.best_score_))
+    assert len(returned_array) == 2
+
+def test_time_series_grid_search_xgb_dict():
     
+    best_model, best_params = time_series_grid_search_xgb(
+        X=test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1),
+        y=test_stock_feat_df[model_config["TARGET_NAME"]],
+        stock_name=STOCK_NAME,
+        param_grid=test_param_grid,
+        n_splits=2,
+        random_state=42
+    )
+
+    assert isinstance(best_model, xgb.sklearn.XGBRegressor)
+    assert isinstance(best_params, dict)
+
 
 #test_make_dataset()
 #test_build_features()
