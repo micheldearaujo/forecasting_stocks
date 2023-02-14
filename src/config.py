@@ -36,7 +36,12 @@ import altair as alt
 import plotly.express as px
 
 # MLOps
-#import mlflow
+import mlflow
+import mlflow.sklearn
+from mlflow.models.signature import infer_signature
+from mlflow import MlflowClient
+
+
 
 
 plt.style.use("fivethirtyeight")
@@ -76,12 +81,12 @@ INTERIM_DATA_PATH = os.path.join(ROOT_DATA_PATH, "interim")
 MODELS_PATH = "./models"
 
 param_grid = {
-    "n_estimators": [40, 100, 200, 300, 400],
-    "max_depth": [3, 5, 7, 9, 12],
+    "n_estimators": [40, 100, 300],
+    "max_depth": [3, 5, 7, 9],
     "learning_rate": [0.2, 0.3, 0.1, 0.01, 0.001],
-    "subsample": [0.5, 0.7, 1.0],
-    "colsample_bytree": [0.5, 0.7, 1.0],
-    "gamma": [0, 0.25, 0.5, 1.0],
+    "subsample": [0.8, 1.0],
+    "colsample_bytree": [1.0],
+    "gamma": [0.1, 0.25, 0.5, 1.0],
     "reg_alpha": [0, 0.25, 0.5, 1.0],
     "reg_lambda": [0, 0.25, 0.5, 1.0],
 }

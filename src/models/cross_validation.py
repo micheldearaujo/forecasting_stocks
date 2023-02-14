@@ -33,11 +33,4 @@ if __name__ == "__main__":
         stock_name=STOCK_NAME
     )
 
-    # predictions_df = validade_model_one_shot(
-    #     X=stock_df_feat.drop([model_config["TARGET_NAME"]], axis=1),
-    #     y=stock_df_feat[model_config["TARGET_NAME"]],
-    #     forecast_horizon=model_config['FORECAST_HORIZON'],
-    #     stock_name=STOCK_NAME
-    # )
-
     logger.info("Cross Validation Pipeline was sucessful!")

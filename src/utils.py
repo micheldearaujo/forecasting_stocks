@@ -158,6 +158,7 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
 
     plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now().date()}.png")
     plt.show()
+    return fig
 
 
 def visualize_forecast(pred_df: pd.DataFrame, historical_df: pd.DataFrame, stock_name: str):
@@ -239,10 +240,14 @@ def train_model(X_train: pd.DataFrame,  y_train: pd.DataFrame, params):
     xgboost_model.fit(
         X_train,
         y_train,
+        eval_set=[(X_train, y_train)],
+        eval_metric=["rmse", "logloss"],
         )
 
     # save model
     dump(xgboost_model, f"./models/{model_config['REGISTER_MODEL_NAME']}.joblib")
+
+
 
     return xgboost_model
 
@@ -354,58 +359,106 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     
     # load the best model
     xgboost_model = load(f"./models/{stock_name}_xgb.joblib")
-
+    # get the best parameters
     parameters = xgboost_model.get_xgb_params()
 
-    # fit the model again with the best parameters
-    xgboost_model = train_model(
-        X_train.drop("Date", axis=1),
-        y_train,
-        parameters
-    )
+    # start the mlflow tracking
+    with mlflow.start_run(run_name="experiment_1") as run:
 
-    # Iterate over the dataset to perform predictions over the forecast horizon, one by one.
-    # After forecasting the next step, we need to update the "lag" features with the last forecasted
-    # value
-    for day in range(forecast_horizon-4, 0, -1):
-        
-        if day != 1:
-            # the testing set will be the next day after the training and we use the complete dataset
-            X_test = X.iloc[-day:-day+1,:]
-            y_test = y.iloc[-day:-day+1]
+        # fit the model again with the best parameters
+        xgboost_model = train_model(
+            X_train.drop("Date", axis=1),
+            y_train,
+            parameters
+        )
 
-        else:
-            # need to change the syntax for the last day (for -1:-2 will not work)
-            X_test = X.iloc[-day:,:]
-            y_test = y.iloc[-day:]
-
-        # only the first iteration will use the true value of Close_lag_1
-        # because the following ones will use the last predicted value as true value
-        # so we simulate the process of predicting out-of-sample
-        if len(predictions) != 0:
+        # Iterate over the dataset to perform predictions over the forecast horizon, one by one.
+        # After forecasting the next step, we need to update the "lag" features with the last forecasted
+        # value
+        for day in range(forecast_horizon-4, 0, -1):
             
-            # we need to update the X_test["Close_lag_1"] value, because
-            # it should be equal to the last prediction (the "yesterday" value)
-            X_test.iat[0, -1] = predictions[-1]            
+            if day != 1:
+                # the testing set will be the next day after the training and we use the complete dataset
+                X_test = X.iloc[-day:-day+1,:]
+                y_test = y.iloc[-day:-day+1]
 
-        else:
-            pass
-    
-        # make prediction
-        prediction = xgboost_model.predict(X_test.drop("Date", axis=1))
+            else:
+                # need to change the syntax for the last day (for -1:-2 will not work)
+                X_test = X.iloc[-day:,:]
+                y_test = y.iloc[-day:]
 
-        # store the results
-        predictions.append(prediction[0])
-        actuals.append(y_test.values[0])
-        dates.append(X_test["Date"].max())
+            # only the first iteration will use the true value of Close_lag_1
+            # because the following ones will use the last predicted value as true value
+            # so we simulate the process of predicting out-of-sample
+            if len(predictions) != 0:
+                
+                # we need to update the X_test["Close_lag_1"] value, because
+                # it should be equal to the last prediction (the "yesterday" value)
+                X_test.iat[0, -1] = predictions[-1]            
 
-    # Calculate the resulting metric
-    model_mape = round(mean_absolute_percentage_error(actuals, predictions), 4)
-    model_rmse = round(np.sqrt(mean_squared_error(actuals, predictions)), 2)
- 
-    pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["Date", 'Actual', 'Forecast'])
-    pred_df["Forecast"] = pred_df["Forecast"].astype("float64")
-    visualize_validation_results(pred_df, model_mape, model_rmse, stock_name)
+            else:
+                pass
+
+            # make prediction
+            prediction = xgboost_model.predict(X_test.drop("Date", axis=1))
+
+            # store the results
+            predictions.append(prediction[0])
+            actuals.append(y_test.values[0])
+            dates.append(X_test["Date"].max())
+
+        # Calculate the resulting metric
+        model_mape = round(mean_absolute_percentage_error(actuals, predictions), 4)
+        model_rmse = round(np.sqrt(mean_squared_error(actuals, predictions)), 2)
+
+        pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["Date", 'Actual', 'Forecast'])
+        pred_df["Forecast"] = pred_df["Forecast"].astype("float64")
+        fig = visualize_validation_results(pred_df, model_mape, model_rmse, stock_name)
+        # get the training results
+        learning_results = xgboost_model.evals_result()
+      
+        # Plotting the Learning Results
+        fig2, axs = plt.subplots(1, 2, figsize=(12, 5))
+        plt.suptitle("XGBoost Learning Curves")
+        axs[0].plot(learning_results['validation_0']['rmse'], label='Training')
+        axs[0].set_title("RMSE Metric")
+        axs[0].set_ylabel("RMSE")
+        axs[0].set_xlabel("Iterations")
+        axs[0].legend()
+
+        axs[1].plot(learning_results['validation_0']['logloss'], label='Training')
+        axs[1].set_title("Logloss Metric")
+        axs[1].set_ylabel("Logloss")
+        axs[1].set_xlabel("Iterations")
+        axs[1].legend()
+        plt.show()
+        # ---- logging ----
+
+        # log the parameters
+        mlflow.log_params(parameters)
+
+        # log the metrics
+        mlflow.log_metric("MAPE", model_mape)
+        mlflow.log_metric("RMSE", model_rmse)
+
+        # log the figure
+        mlflow.log_figure(fig, "validation_results.png")
+        mlflow.log_figure(fig2, "learning_curves.png")
+
+        # get model signature
+        model_signature = infer_signature(X_train, pd.DataFrame(y_train))
+
+        # log the model to mlflow
+        mlflow.xgboost.log_model(
+            xgb_model=xgboost_model,
+            artifact_path="xgboost_model",
+            input_example=X_train.head(),
+            signature=model_signature
+        )
+
+        # execute the CD pipeline
+        cd_pipeline(run.info, y_train, pred_df, model_mape)
+
     
     return pred_df
 
@@ -467,7 +520,13 @@ def make_predict(forecast_horizon: int, future_df: pd.DataFrame) -> pd.DataFrame
     predictions = []
 
     # load the model and predict
-    model = load(os.path.join(MODELS_PATH, f"{model_config['REGISTER_MODEL_NAME']}.joblib"))
+    #model = load(os.path.join(MODELS_PATH, f"{model_config['REGISTER_MODEL_NAME']}.joblib"))
+    
+    # load the model using mlflow
+    staging_model_uri = "models:/{model_name}/production".format(model_name=model_config['REGISTER_MODEL_NAME'])
+
+    logger.info("Loading the Production registered model version from URI: '{model_uri}'".format(model_uri=staging_model_uri))
+    model = mlflow.xgboost.load_model(staging_model_uri)
 
     for day in range(0, forecast_horizon):
 
@@ -519,3 +578,105 @@ def time_series_grid_search_xgb(X, y, param_grid, stock_name, n_splits=5, random
     # save the best model
     dump(best_model, f"./models/{stock_name}_xgb.joblib")
     return best_model, best_params
+
+
+def predictions_sanity_check(client, run_info, y_train, pred_df, model_mape):
+    """
+    Check if the predictions are reliable.
+    """
+    newest_run_id = run_info.run_id
+    newest_run_name = run_info.run_name
+
+    # register the model
+    model_details = mlflow.register_model(
+        model_uri = f"runs:/{newest_run_id}/{newest_run_name}",
+        name = model_config['REGISTER_MODEL_NAME']
+    )
+
+    # validae the predictions
+    # check if the MAPE is less than 3%
+    # check if the predictions have similar variation of historical
+    if (model_mape < 0.03) and (0 < pred_df["Forecast"].std() < y_train.std()*2):
+
+        # if so, transit to staging
+        client.transition_model_version_stage(
+            name=model_config['REGISTER_MODEL_NAME'],
+            version=model_details.version,
+            stage='Staging',
+        )
+
+        return model_details
+
+    else:
+        # if not, discard it
+        client.delete_model_version(
+            name=model_config['REGISTER_MODEL_NAME'],
+            version=model_details.version,
+        )
+        
+        return False
+
+
+def compare_models(client, model_details):
+
+    # get the metrics of the Production model
+    models_versions = []
+
+    for mv in client.search_model_versions("name='{}'".format(model_config['REGISTER_MODEL_NAME'])):
+        models_versions.append(dict(mv))
+
+    current_prod_model = [x for x in models_versions if x['current_stage'] == 'Production'][0]
+
+    # Extract the current staging model MAPE
+    current_model_mape = mlflow.get_run(current_prod_model['run_id']).data.metrics[model_config['VALIDATION_METRIC']]
+
+    # Get the new model MAPE
+    candidate_model_mape = mlflow.get_run(model_details.run_id).data.metrics[model_config['VALIDATION_METRIC']]
+
+    # compare
+    if candidate_model_mape < current_model_mape:
+        print(f"Candidate model has a better {model_config['VALIDATION_METRIC']} than the active model. Switching models...")
+        
+        # archive the previous version
+        client.transition_model_version_stage(
+            name=model_config['REGISTER_MODEL_NAME'],
+            version=current_prod_model['version'],
+            stage='Archived',
+        )
+
+        # transition the newest version
+        client.transition_model_version_stage(
+            name=model_config['REGISTER_MODEL_NAME'],
+            version=model_details.version,
+            stage='Production',
+        )
+
+
+    else:
+        print(f"Active model has a better {model_config['VALIDATION_METRIC']} than the candidate model.\nTransiting the staging model to None.")
+        
+        client.transition_model_version_stage(
+            name=model_config['REGISTER_MODEL_NAME'],
+            version=model_details.version,
+            stage='None',
+        )
+        
+    print(f"Candidate: {model_config['VALIDATION_METRIC']} = {candidate_model_mape}\nCurrent: = {current_model_mape}")
+
+
+def cd_pipeline(run_info, y_train, pred_df, model_mape):
+    
+    client = MlflowClient()
+
+    # validae the predictions
+    model_details = predictions_sanity_check(client, run_info, y_train, pred_df, model_mape)
+
+    if model_details:
+        # compare the new model with the production model
+        logger.info("The model is reliable. Comparing it with the production model...")
+        compare_models(client, model_details)
+
+    else:
+        logger.info("The model is not reliable. Discarding it.")
+
+    
