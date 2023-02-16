@@ -220,7 +220,7 @@ def visualize_forecast(pred_df: pd.DataFrame, historical_df: pd.DataFrame, stock
     return fig
 
 
-def train_model(X_train: pd.DataFrame,  y_train: pd.DataFrame, params):
+def train_model(X_train: pd.DataFrame,  y_train: pd.DataFrame, params: dict = None):
     """
     Trains a XGBoost model for Forecasting
     
@@ -232,9 +232,14 @@ def train_model(X_train: pd.DataFrame,  y_train: pd.DataFrame, params):
     logger.info("Training the model...")
 
     # create the model
-    xgboost_model = xgb.XGBRegressor(
-        **params
-        )
+    if params is None:
+        print("param none")
+        xgboost_model = xgb.XGBRegressor()
+    else:
+
+        xgboost_model = xgb.XGBRegressor(
+            **params
+            )
 
     # train the model
     xgboost_model.fit(
