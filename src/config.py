@@ -57,7 +57,8 @@ model_config = {
     "VALIDATION_METRIC": "MAPE",
     "OPTIMIZATION_METRIC": "MSE",
     "FORECAST_HORIZON": 14,
-    "REGISTER_MODEL_NAME": "Stock_Predictor"
+    "REGISTER_MODEL_NAME_VAL": "Stock_Predictor_Validation",
+    "REGISTER_MODEL_NAME_INF": "Stock_Predictor_Inference"
 }
 
 features_list = ["day_of_month", "month", "quarter", "Close_lag_1"]

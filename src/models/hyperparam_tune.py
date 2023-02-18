@@ -54,7 +54,6 @@ if __name__ == "__main__":
     logger.debug("Splitting the dataset into train and test sets..")
     X_train, X_test, y_train, y_test = ts_train_test_split(cross_val_data, model_config["TARGET_NAME"], test_size=model_config["FORECAST_HORIZON"]-4)
     X_train = X_train.drop("Date", axis=1)
-    X_train.shape
     X_test = X_test.drop("Date", axis=1)
     
     logger.debug("Getting the validation set")
@@ -78,7 +77,6 @@ if __name__ == "__main__":
     
     logger.debug("Extracting the best params")
     xgboost_best_param_names = space_eval(search_space, best_params)
-    xgboost_best_param_names
     print(xgboost_best_param_names)
 
     # now train the model with the best params just to save them
@@ -95,3 +93,4 @@ if __name__ == "__main__":
     # save it
     dump(xgboost_model, f"./models/{STOCK_NAME}_params.joblib")
     logger.info("Cross Validation Pipeline was sucessful!")
+

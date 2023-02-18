@@ -251,7 +251,7 @@ def train_model(X_train: pd.DataFrame,  y_train: pd.DataFrame, params: dict = No
         )
 
     # save model
-    dump(xgboost_model, f"./models/{model_config['REGISTER_MODEL_NAME']}.joblib")
+    dump(xgboost_model, f"./models/{model_config['REGISTER_MODEL_NAME_EVAL']}.joblib")
 
 
 
@@ -415,13 +415,23 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     parameters = xgboost_model.get_xgb_params()
 
     # start the mlflow tracking
-    with mlflow.start_run(run_name="experiment_1") as run:
+    with mlflow.start_run(run_name="model_validation") as run:
 
         # fit the model again with the best parameters
-        xgboost_model = train_model(
+        print(parameters)
+
+        xgboost_model = xgb.XGBRegressor(
+            **parameters
+        )
+        
+
+        # train the model
+        xgboost_model.fit(
             X_train.drop("Date", axis=1),
             y_train,
-            parameters
+            eval_set=[(X_train.drop("Date", axis=1), y_train)],
+            eval_metric=["rmse", "logloss"],
+
         )
 
         # Iterate over the dataset to perform predictions over the forecast horizon, one by one.
@@ -632,49 +642,55 @@ def time_series_grid_search_xgb(X, y, param_grid, stock_name, n_splits=5, random
     return best_model, best_params
 
 
-def predictions_sanity_check(client, run_info, y_train, pred_df, model_mape):
+def predictions_sanity_check(client, run_info, y_train, pred_df, model_mape, stage_version):
     """
     Check if the predictions are reliable.
     """
+
     newest_run_id = run_info.run_id
     newest_run_name = run_info.run_name
 
     # register the model
+    logger.debug("Registering the model...")
     model_details = mlflow.register_model(
         model_uri = f"runs:/{newest_run_id}/{newest_run_name}",
-        name = model_config['REGISTER_MODEL_NAME']
+        name = model_config[f'REGISTER_MODEL_NAME_{stage_version}']
     )
 
-    # validae the predictions
+    # validate the predictions
     # check if the MAPE is less than 3%
     # check if the predictions have similar variation of historical
-    if (model_mape < 0.03) and (0 < pred_df["Forecast"].std() < y_train.std()*2):
+    logger.debug("Checking if the metrics and forecasts are valid...")
+    if (model_mape < 0.03) and (0 < pred_df["Forecast"].std() < y_train.std()*1.5):
 
         # if so, transit to staging
         client.transition_model_version_stage(
-            name=model_config['REGISTER_MODEL_NAME'],
+            name=model_config[f'REGISTER_MODEL_NAME_{stage_version}'],
             version=model_details.version,
             stage='Staging',
         )
 
+        # return the model details
+        logger.debug("The model is valid. Returning the model details...")
         return model_details
 
     else:
         # if not, discard it
         client.delete_model_version(
-            name=model_config['REGISTER_MODEL_NAME'],
+            name=model_config[f'REGISTER_MODEL_NAME_{stage_version}'],
             version=model_details.version,
         )
         
+        # return false to indicate that the model is not valid
         return False
 
 
-def compare_models(client, model_details):
+def compare_models(client, model_details, stage_version):
 
     # get the metrics of the Production model
     models_versions = []
 
-    for mv in client.search_model_versions("name='{}'".format(model_config['REGISTER_MODEL_NAME'])):
+    for mv in client.search_model_versions("name='{}'".format(model_config[f'REGISTER_MODEL_NAME_{stage_version}'])):
         models_versions.append(dict(mv))
 
     current_prod_model = [x for x in models_versions if x['current_stage'] == 'Production'][0]
@@ -691,14 +707,14 @@ def compare_models(client, model_details):
         
         # archive the previous version
         client.transition_model_version_stage(
-            name=model_config['REGISTER_MODEL_NAME'],
+            name=model_config[f'REGISTER_MODEL_NAME_{stage_version}'],
             version=current_prod_model['version'],
             stage='Archived',
         )
 
         # transition the newest version
         client.transition_model_version_stage(
-            name=model_config['REGISTER_MODEL_NAME'],
+            name=model_config[f'REGISTER_MODEL_NAME_{stage_version}'],
             version=model_details.version,
             stage='Production',
         )
@@ -708,7 +724,7 @@ def compare_models(client, model_details):
         print(f"Active model has a better {model_config['VALIDATION_METRIC']} than the candidate model.\nTransiting the staging model to None.")
         
         client.transition_model_version_stage(
-            name=model_config['REGISTER_MODEL_NAME'],
+            name=model_config[f'REGISTER_MODEL_NAME_{stage_version}'],
             version=model_details.version,
             stage='None',
         )
@@ -717,16 +733,18 @@ def compare_models(client, model_details):
 
 
 def cd_pipeline(run_info, y_train, pred_df, model_mape):
+
+    logger.debug(" ----- Starting CD pipeline -----")
     
     client = MlflowClient()
 
-    # validae the predictions
-    model_details = predictions_sanity_check(client, run_info, y_train, pred_df, model_mape)
+    # validate the predictions
+    model_details = predictions_sanity_check(client, run_info, y_train, pred_df, model_mape, "VAL")
 
     if model_details:
         # compare the new model with the production model
         logger.info("The model is reliable. Comparing it with the production model...")
-        compare_models(client, model_details)
+        compare_models(client, model_details, "VAL")
 
     else:
         logger.info("The model is not reliable. Discarding it.")

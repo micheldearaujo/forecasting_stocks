@@ -11,11 +11,11 @@ INTERVAL = '1d'
 
 if __name__ == "__main__":
 
-    #STOCK_NAME = str(input("Which stock do you want to track? "))
     STOCK_NAME = 'BOVA11.SA'
-    logger.info("Starting the Validation pipeline..")
+    logger.debug("Starting the Validation pipeline..")
 
     # download the dataset
+    # TODO: Stop downloading the dataset every time, just load it
     stock_df = make_dataset(STOCK_NAME, PERIOD, INTERVAL)
 
     # perform featurization
