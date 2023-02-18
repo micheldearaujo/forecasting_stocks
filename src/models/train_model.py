@@ -18,11 +18,17 @@ def load_production_model_params():
     current_prod_model = [x for x in models_versions if x['current_stage'] == 'Production'][0]
     prod_validation_model_params = mlflow.get_run(current_prod_model['run_id']).data.params
 
+    logger.debug("Pametros do modelo de validação em produção:")
+    print(prod_validation_model_params)
+
     # remove unsignificant params
     prod_validation_model_params_new = {}
-    for key, value in prod_validation_model_params_new.items():
+    for key, value in prod_validation_model_params.items():
         if key in xgboost_hyperparameter_config.keys():
             prod_validation_model_params_new[key] = value
+
+    logger.debug("Pametros do modelo de validação em produção (após remoção de parâmetros não significativos):")
+    print(prod_validation_model_params_new)
 
     return prod_validation_model_params_new, current_prod_model
         
@@ -84,7 +90,7 @@ if __name__ == "__main__":
         # ---- logging ----
 
         # log the parameters
-        mlflow.log_params(prod_validation_model_params)#xgboost_model.get_params())
+        mlflow.log_params(prod_validation_model_params)
         mlflow.log_figure(fig2, "learning_curves.png")
 
         # get model signature
@@ -105,10 +111,18 @@ if __name__ == "__main__":
             name = model_config['REGISTER_MODEL_NAME_INF']
         )
 
+        # Need to load the current prod inference model now, to archive it
+        models_versions = []
+
+        for mv in client.search_model_versions("name='{}'".format(model_config['REGISTER_MODEL_NAME_INF'])):
+            models_versions.append(dict(mv))
+
+        current_prod_inf_model = [x for x in models_versions if x['current_stage'] == 'Production'][0]
+
         # Archive the previous version
         client.transition_model_version_stage(
             name=model_config['REGISTER_MODEL_NAME_INF'],
-            version=current_prod_model['version'],
+            version=current_prod_inf_model['version'],
             stage='Archived',
         )
 

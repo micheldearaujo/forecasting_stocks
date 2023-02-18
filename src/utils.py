@@ -562,7 +562,7 @@ def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list:
     return future_df
 
 
-def make_predict(forecast_horizon: int, future_df: pd.DataFrame) -> pd.DataFrame:
+def make_predict(model, forecast_horizon: int, future_df: pd.DataFrame) -> pd.DataFrame:
 
     """
     Make predictions for the next `forecast_horizon` days using a XGBoost model
@@ -585,10 +585,6 @@ def make_predict(forecast_horizon: int, future_df: pd.DataFrame) -> pd.DataFrame
     #model = load(os.path.join(MODELS_PATH, f"{model_config['REGISTER_MODEL_NAME']}.joblib"))
     
     # load the model using mlflow
-    staging_model_uri = "models:/{model_name}/production".format(model_name=model_config['REGISTER_MODEL_NAME'])
-
-    logger.info("Loading the Production registered model version from URI: '{model_uri}'".format(model_uri=staging_model_uri))
-    model = mlflow.xgboost.load_model(staging_model_uri)
 
     for day in range(0, forecast_horizon):
 
