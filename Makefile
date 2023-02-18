@@ -27,3 +27,4 @@ clean:
 	rm -rf __pycache__
 	rm -f *.log
 	rm -f *.log
+	rm -f .coverage*

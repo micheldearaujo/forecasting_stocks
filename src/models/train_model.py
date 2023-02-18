@@ -10,7 +10,8 @@ INTERVAL = '1d'
 # Execute the whole pipeline
 if __name__ == "__main__":
 
-    STOCK_NAME = str(input("Which stock do you want to track? "))
+    #STOCK_NAME = str(input("Which stock do you want to track? "))
+    STOCK_NAME = 'BOVA11.SA'
 
     logger.info("Starting the training pipeline..")
 
