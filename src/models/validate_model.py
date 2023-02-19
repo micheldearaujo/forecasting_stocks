@@ -3,24 +3,16 @@ import sys
 sys.path.insert(0,'.')
 
 from src.utils import *
-# make the dataset
-PERIOD = '800d'
-INTERVAL = '1d'
+
 
 # Execute the whole pipeline
 
 if __name__ == "__main__":
 
-    STOCK_NAME = 'BOVA11.SA'
-    logger.debug("Starting the Validation pipeline..")
+    logger.debug("Loading the featurized dataset..")
+    stock_df_feat = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
 
-    # download the dataset
-    # TODO: Stop downloading the dataset every time, just load it
-    stock_df = make_dataset(STOCK_NAME, PERIOD, INTERVAL)
-
-    # perform featurization
-    stock_df_feat = build_features(stock_df, features_list)
-
+    logger.info("Starting the Model Evaluation pipeline..")
     predictions_df = validade_model_one_shot(
         X=stock_df_feat.drop([model_config["TARGET_NAME"]], axis=1),
         y=stock_df_feat[model_config["TARGET_NAME"]],
@@ -28,7 +20,4 @@ if __name__ == "__main__":
         stock_name=STOCK_NAME
     )
 
-    #cd_pipeline()
-
-
-    logger.info("Validation Pipeline was sucessful!")
+    logger.info("Model Evaluation Pipeline was sucessful!")

@@ -3,18 +3,17 @@ import sys
 sys.path.insert(0,'.')
 
 from src.utils import *
-# make the dataset
-PERIOD = '800d'
-INTERVAL = '1d'
 
-def load_production_model_params():
+def load_production_model_params(client):
 
-    client = MlflowClient()
+    # create empty list to store model versions
     models_versions = []
 
+    # search for model versions
     for mv in client.search_model_versions("name='{}'".format(model_config['REGISTER_MODEL_NAME_VAL'])):
         models_versions.append(dict(mv))
 
+    # get the prod model
     current_prod_model = [x for x in models_versions if x['current_stage'] == 'Production'][0]
     prod_validation_model_params = mlflow.get_run(current_prod_model['run_id']).data.params
 
@@ -30,11 +29,11 @@ def load_production_model_params():
 if __name__ == "__main__":
     logger.info("Starting the training pipeline...\n")
 
-    STOCK_NAME = 'BOVA11.SA'
+    # create the mlflow client
     client = MlflowClient()
     
     logger.debug("Loading the featurized dataset..")
-    stock_df_feat = pd.read_csv("./data/processed/processed_stock_prices.csv")
+    stock_df_feat = pd.read_csv("./data/processed/processed_stock_prices.csv", parse_dates=["Date"])
 
     logger.debug("Splitting the dataset into train and test..")
     X_train=stock_df_feat.drop([model_config["TARGET_NAME"], "Date"], axis=1)
@@ -42,7 +41,7 @@ if __name__ == "__main__":
 
     # load the production model parameters
     logger.debug("Loading the production model parameters..")
-    prod_validation_model_params, current_prod_model = load_production_model_params()
+    prod_validation_model_params, current_prod_model = load_production_model_params(client)
 
     logger.debug("Training the model..")
     with mlflow.start_run(run_name="model_inference") as run:
@@ -61,6 +60,7 @@ if __name__ == "__main__":
             verbose=0
         )
 
+        logger.debug("Plotting the learning curves..")
         learning_results = xgboost_model.evals_result()
       
         # Plotting the Learning Results
@@ -80,6 +80,7 @@ if __name__ == "__main__":
 
         # ---- logging ----
 
+        logger.debug("Logging the results..")
         # log the parameters
         mlflow.log_params(prod_validation_model_params)
         mlflow.log_figure(fig2, "learning_curves.png")
@@ -102,6 +103,7 @@ if __name__ == "__main__":
             name = model_config['REGISTER_MODEL_NAME_INF']
         )
 
+        logger.debug("Loading the current Inference Production model...")
         # Need to load the current prod inference model now, to archive it
         models_versions = []
 

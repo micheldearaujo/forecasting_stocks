@@ -2,7 +2,7 @@ import sys
 sys.path.insert(0,'.')
 
 from src.utils import *
-
+from src.features.build_features import build_features
 
 
 def main():
@@ -14,11 +14,6 @@ def main():
     Returns:
         None
     """
-
-    # make the dataset
-    PERIOD = '800d'
-    INTERVAL = '1d'
-    STOCK_NAME = 'BOVA11.SA'  #str(input("Which stock do you want to track? "))
 
     features_list = ["day_of_month", "month", "quarter", "Close_lag_1"]
     client = MlflowClient()

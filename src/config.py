@@ -64,7 +64,9 @@ model_config = {
 features_list = ["day_of_month", "month", "quarter", "Close_lag_1"]
 
 # Define a ação para procurar
-#STOCK_NAME = 'BOVA11.SA'
+PERIOD = '800d'
+INTERVAL = '1d'
+STOCK_NAME = 'BOVA11.SA'
 
 # Configura o logging
 log_format = "[%(name)s][%(levelname)-6s] %(message)s"

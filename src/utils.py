@@ -8,82 +8,8 @@ import sys
 sys.path.insert(0,'.')
 
 from src.config import *
+from src.features.build_features import build_features
 
-
-def make_dataset(stock_name: str, period: str, interval: str):
-    """
-    Creates a dataset of the closing prices of a given stock.
-    
-    Parameters:
-        stock_name (str): The name of the stock to retrieve data for.
-        period (str): The length of time to retrieve data for, e.g. '1d', '1mo', '3mo', '6mo', '1y', '5y', 'max'.
-        interval (str): The frequency of the data, e.g. '1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'.
-    
-    Returns:
-        pandas.DataFrame: The dataframe containing the closing prices of the given stock.
-    """
-
-    stock_price_df = yfin.Ticker(stock_name).history(period=period, interval=interval)
-    stock_price_df['Stock'] = stock_name
-    stock_price_df = stock_price_df[['Close']]
-    stock_price_df = stock_price_df.reset_index()
-    stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
-    stock_price_df['Date'] = stock_price_df['Date'].apply(lambda x: x.date())
-    stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
-    stock_price_df.to_csv(os.path.join(RAW_DATA_PATH, 'raw_stock_prices.csv'), index=False)#'./data/raw/raw_stock_prices.csv', index=False)
-
-    return stock_price_df
-
-
-def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -> pd.DataFrame:
-    """
-    This function creates the features for the dataset to be consumed by the
-    model
-    
-    :param raw_df: Raw Pandas DataFrame to create the features of
-    :param features_list: The list of features to create
-
-    :return: Pandas DataFrame with the new features
-    """
-
-    logger.debug("Started building features...")
-    stock_df_featurized = raw_df.copy()
-    for feature in features_list:
-        
-        # create "Time" features
-        if feature == "day_of_month":
-            stock_df_featurized['day_of_month'] = stock_df_featurized["Date"].apply(lambda x: float(x.day))
-        elif feature == "month":
-            stock_df_featurized['month'] = stock_df_featurized['Date'].apply(lambda x: float(x.month))
-        elif feature == "quarter":
-            stock_df_featurized['quarter'] = stock_df_featurized['Date'].apply(lambda x: float(x.quarter))
-
-    # Create "Lag" features
-    # The lag 1 feature will become the main regressor, and the regular "Close" will become the target.
-    # As we saw that the lag 1 holds the most aucorrelation, it is reasonable to use it as the main regressor.
-        elif feature == "Close_lag_1":
-            stock_df_featurized['Close_lag_1'] = stock_df_featurized['Close'].shift()
-
-
-    # Drop nan values because of the shift
-    stock_df_featurized = stock_df_featurized.dropna()
-    try:
-        logger.debug("Rounding the features to 2 decimal places...")
-        # handle exception when building the future dataset
-        stock_df_featurized['Close'] = stock_df_featurized['Close'].apply(lambda x: round(x, 2))
-        stock_df_featurized['Close_lag_1'] = stock_df_featurized['Close_lag_1'].apply(lambda x: round(x, 2))
-    except KeyError:
-        pass
-    
-
-    # Save the dataset
-    #stock_df_featurized.to_csv("./data/processed/processed_stock_prices.csv", index=False)
-    if save:
-        stock_df_featurized.to_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), index=False)
-
-    logger.debug("Features built successfully!")
-
-    return stock_df_featurized
 
 
 def ts_train_test_split(data: pd.DataFrame, target:str, test_size: int):
@@ -428,12 +354,9 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     with mlflow.start_run(run_name="model_validation") as run:
 
         # fit the model again with the best parameters
-        print(parameters)
-
         xgboost_model = xgb.XGBRegressor(
             **parameters
         )
-        
 
         # train the model
         xgboost_model.fit(
@@ -506,6 +429,7 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         #plt.show()
         # ---- logging ----
 
+        logger.debug("Logging the results to MLFlow")
         # log the parameters
         mlflow.log_params(parameters)
 
@@ -590,11 +514,6 @@ def make_predict(model, forecast_horizon: int, future_df: pd.DataFrame) -> pd.Da
 
     # Create empty list for storing each prediction
     predictions = []
-
-    # load the model and predict
-    #model = load(os.path.join(MODELS_PATH, f"{model_config['REGISTER_MODEL_NAME']}.joblib"))
-    
-    # load the model using mlflow
 
     for day in range(0, forecast_horizon):
 
@@ -742,6 +661,7 @@ def cd_pipeline(run_info, y_train, pred_df, model_mape):
 
     logger.debug(" ----- Starting CD pipeline -----")
     
+    # create a new Mlflow client
     client = MlflowClient()
 
     # validate the predictions
@@ -755,4 +675,4 @@ def cd_pipeline(run_info, y_train, pred_df, model_mape):
     else:
         logger.info("The model is not reliable. Discarding it.")
 
-    
+    logger.debug(" ----- CD pipeline finished -----")
