@@ -18,16 +18,12 @@ def load_production_model_params():
     current_prod_model = [x for x in models_versions if x['current_stage'] == 'Production'][0]
     prod_validation_model_params = mlflow.get_run(current_prod_model['run_id']).data.params
 
-    logger.debug("Pametros do modelo de validação em produção:")
-    print(prod_validation_model_params)
-
     # remove unsignificant params
     prod_validation_model_params_new = {}
     for key, value in prod_validation_model_params.items():
         if key in xgboost_hyperparameter_config.keys():
             prod_validation_model_params_new[key] = value
 
-    logger.debug("Pametros do modelo de validação em produção (após remoção de parâmetros não significativos):")
     print(prod_validation_model_params_new)
 
     return prod_validation_model_params_new, current_prod_model
@@ -42,10 +38,12 @@ if __name__ == "__main__":
 
     # download the dataset and as raw
     # TODO: Stop downloading the dataset every time, just load it
-    stock_df = make_dataset(STOCK_NAME, PERIOD, INTERVAL)
+    #stock_df = make_dataset(STOCK_NAME, PERIOD, INTERVAL)
 
     # perform featurization
-    stock_df_feat = build_features(stock_df, features_list)
+    #stock_df_feat = build_features(stock_df, features_list)
+    # load the featurized dataset
+    stock_df_feat = pd.read_csv("./data/processed/processed_stock_prices.csv")
 
     X_train=stock_df_feat.drop([model_config["TARGET_NAME"], "Date"], axis=1)
     y_train=stock_df_feat[model_config["TARGET_NAME"]]

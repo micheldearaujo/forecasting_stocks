@@ -13,7 +13,7 @@ stock_df['Date'] = pd.to_datetime(stock_df['Date'])
 #stock_df = stock_df[stock_df['Date'] >= pd.to_datetime('2020-09-01')]
 
 
-def build_features(raw_df: pd.DataFrame, features_list: list) -> pd.DataFrame:
+def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -> pd.DataFrame:
     """
     This function creates the features for the dataset to be consumed by the
     model
@@ -24,16 +24,18 @@ def build_features(raw_df: pd.DataFrame, features_list: list) -> pd.DataFrame:
     :return: Pandas DataFrame with the new features
     """
 
+    logger.info("Building the features...")
+
     stock_df_featurized = raw_df.copy()
     for feature in features_list:
         
-        # Create "Time" features]
+        # create "Time" features
         if feature == "day_of_month":
-            stock_df_featurized['day_of_month'] = stock_df_featurized["Date"].apply(lambda x: x.day)
+            stock_df_featurized['day_of_month'] = stock_df_featurized["Date"].apply(lambda x: float(x.day))
         elif feature == "month":
-            stock_df_featurized['month'] = stock_df_featurized['Date'].apply(lambda x: x.month)
+            stock_df_featurized['month'] = stock_df_featurized['Date'].apply(lambda x: float(x.month))
         elif feature == "quarter":
-            stock_df_featurized['quarter'] = stock_df_featurized['Date'].apply(lambda x: x.quarter)
+            stock_df_featurized['quarter'] = stock_df_featurized['Date'].apply(lambda x: float(x.quarter))
 
     # Create "Lag" features
     # The lag 1 feature will become the main regressor, and the regular "Close" will become the target.
@@ -41,8 +43,23 @@ def build_features(raw_df: pd.DataFrame, features_list: list) -> pd.DataFrame:
         elif feature == "Close_lag_1":
             stock_df_featurized['Close_lag_1'] = stock_df_featurized['Close'].shift()
 
+
+    # Drop nan values because of the shift
+    stock_df_featurized = stock_df_featurized.dropna()
+    try:
+        stock_df_featurized['Close'] = stock_df_featurized['Close'].apply(lambda x: round(x, 2))
+    except KeyError:
+        pass
+    stock_df_featurized['Close_lag_1'] = stock_df_featurized['Close_lag_1'].apply(lambda x: round(x, 2))
+
     # Save the dataset
-    stock_df_featurized.to_csv("./data/processed/processed_stock_prices.csv", index=False)
+    #stock_df_featurized.to_csv("./data/processed/processed_stock_prices.csv", index=False)
+    if save:
+        stock_df_featurized.to_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), index=False)
+    logger.info("Features built successfully!")
 
     return stock_df_featurized
 
+
+
+stock_df_feat = build_features(stock_df, features_list)

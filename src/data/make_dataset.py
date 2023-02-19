@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import sys
 sys.path.insert(0,'.')
 
 from src.utils import *
@@ -29,3 +29,9 @@ def make_dataset(stock_name: str, period: str, interval: str):
     stock_price_df.to_csv('./data/raw/raw_stock_prices.csv', index=False)
 
     return stock_price_df
+
+
+PERIOD = '800d'
+INTERVAL = '1d'
+STOCK_NAME = 'BOVA11.SA'
+make_dataset(STOCK_NAME, PERIOD, INTERVAL)

@@ -35,7 +35,7 @@ def make_dataset(stock_name: str, period: str, interval: str):
     return stock_price_df
 
 
-def build_features(raw_df: pd.DataFrame, features_list: list) -> pd.DataFrame:
+def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -> pd.DataFrame:
     """
     This function creates the features for the dataset to be consumed by the
     model
@@ -68,10 +68,19 @@ def build_features(raw_df: pd.DataFrame, features_list: list) -> pd.DataFrame:
 
     # Drop nan values because of the shift
     stock_df_featurized = stock_df_featurized.dropna()
+    try:
+        # handle exception when building the future dataset
+        stock_df_featurized['Close'] = stock_df_featurized['Close'].apply(lambda x: round(x, 2))
+        stock_df_featurized['Close_lag_1'] = stock_df_featurized['Close_lag_1'].apply(lambda x: round(x, 2))
+    except KeyError:
+        pass
+    
 
     # Save the dataset
     #stock_df_featurized.to_csv("./data/processed/processed_stock_prices.csv", index=False)
-    stock_df_featurized.to_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), index=False)
+    if save:
+        stock_df_featurized.to_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), index=False)
+    logger.info("Features built successfully!")
 
     return stock_df_featurized
 
@@ -544,7 +553,7 @@ def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list:
 
     # build the features for the future dataframe using the specified features
     inference_features_list = features_list[:-1]
-    future_df = build_features(future_df, inference_features_list)
+    future_df = build_features(future_df, inference_features_list, save=False)
 
     # filter out weekends from the future dataframe
     future_df["day_of_week"] = future_df.Date.apply(lambda x: x.day_name())
