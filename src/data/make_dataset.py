@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-
+import sys
 sys.path.insert(0,'.')
 
 from src.utils import *
-
 
 
 def make_dataset(stock_name: str, period: str, interval: str):
@@ -26,6 +25,15 @@ def make_dataset(stock_name: str, period: str, interval: str):
     stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
     stock_price_df['Date'] = stock_price_df['Date'].apply(lambda x: x.date())
     stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
-    stock_price_df.to_csv('./data/raw/raw_stock_prices.csv', index=False)
+    stock_price_df.to_csv(os.path.join(RAW_DATA_PATH, 'raw_stock_prices.csv'), index=False)
 
     return stock_price_df
+
+
+if __name__ == '__main__':
+
+    logger.info("Downloading the raw dataset...")
+
+    make_dataset(STOCK_NAME, PERIOD, INTERVAL)
+
+    logger.info("Finished downloading the raw dataset!")

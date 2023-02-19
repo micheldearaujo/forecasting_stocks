@@ -58,13 +58,16 @@ model_config = {
     "OPTIMIZATION_METRIC": "MSE",
     "FORECAST_HORIZON": 14,
     "REGISTER_MODEL_NAME_VAL": "Stock_Predictor_Validation",
-    "REGISTER_MODEL_NAME_INF": "Stock_Predictor_Inference"
+    "REGISTER_MODEL_NAME_INF": "Stock_Predictor_Inference",
+    "MODEL_NAME": "xgboost_model",
 }
 
 features_list = ["day_of_month", "month", "quarter", "Close_lag_1"]
 
 # Define a ação para procurar
-#STOCK_NAME = 'BOVA11.SA'
+PERIOD = '800d'
+INTERVAL = '1d'
+STOCK_NAME = 'BOVA11.SA'
 
 # Configura o logging
 log_format = "[%(name)s][%(levelname)-6s] %(message)s"
@@ -77,8 +80,7 @@ logger.setLevel(logging.DEBUG)
 ROOT_DATA_PATH = "./data"
 RAW_DATA_PATH = os.path.join(ROOT_DATA_PATH, "raw")
 PROCESSED_DATA_PATH = os.path.join(ROOT_DATA_PATH, "processed")
-EXTERNAL_DATA_PATH = os.path.join(ROOT_DATA_PATH, "external")
-INTERIM_DATA_PATH = os.path.join(ROOT_DATA_PATH, "interim")
+OUTPUT_DATA_PATH = os.path.join(ROOT_DATA_PATH, "output")
 
 MODELS_PATH = "./models"
 

@@ -1,0 +1,12 @@
+creation_timestamp: 1676770831686
+current_stage: None
+description: null
+last_updated_timestamp: 1676770831714
+name: Stock_Predictor_Validation
+run_id: f14a32b12c4d47519fe46701780f0ff0
+run_link: null
+source: file:///home/michel/Projects/mlops_practice/mlruns/0/f14a32b12c4d47519fe46701780f0ff0/artifacts/model_validation
+status: READY
+status_message: null
+user_id: null
+version: 4

@@ -8,72 +8,8 @@ import sys
 sys.path.insert(0,'.')
 
 from src.config import *
+from src.features.build_features import build_features
 
-
-def make_dataset(stock_name: str, period: str, interval: str):
-    """
-    Creates a dataset of the closing prices of a given stock.
-    
-    Parameters:
-        stock_name (str): The name of the stock to retrieve data for.
-        period (str): The length of time to retrieve data for, e.g. '1d', '1mo', '3mo', '6mo', '1y', '5y', 'max'.
-        interval (str): The frequency of the data, e.g. '1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'.
-    
-    Returns:
-        pandas.DataFrame: The dataframe containing the closing prices of the given stock.
-    """
-
-    stock_price_df = yfin.Ticker(stock_name).history(period=period, interval=interval)
-    stock_price_df['Stock'] = stock_name
-    stock_price_df = stock_price_df[['Close']]
-    stock_price_df = stock_price_df.reset_index()
-    stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
-    stock_price_df['Date'] = stock_price_df['Date'].apply(lambda x: x.date())
-    stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
-    stock_price_df.to_csv(os.path.join(RAW_DATA_PATH, 'raw_stock_prices.csv'), index=False)#'./data/raw/raw_stock_prices.csv', index=False)
-
-    return stock_price_df
-
-
-def build_features(raw_df: pd.DataFrame, features_list: list) -> pd.DataFrame:
-    """
-    This function creates the features for the dataset to be consumed by the
-    model
-    
-    :param raw_df: Raw Pandas DataFrame to create the features of
-    :param features_list: The list of features to create
-
-    :return: Pandas DataFrame with the new features
-    """
-
-    logger.info("Building the features...")
-
-    stock_df_featurized = raw_df.copy()
-    for feature in features_list:
-        
-        # create "Time" features
-        if feature == "day_of_month":
-            stock_df_featurized['day_of_month'] = stock_df_featurized["Date"].apply(lambda x: float(x.day))
-        elif feature == "month":
-            stock_df_featurized['month'] = stock_df_featurized['Date'].apply(lambda x: float(x.month))
-        elif feature == "quarter":
-            stock_df_featurized['quarter'] = stock_df_featurized['Date'].apply(lambda x: float(x.quarter))
-
-    # Create "Lag" features
-    # The lag 1 feature will become the main regressor, and the regular "Close" will become the target.
-    # As we saw that the lag 1 holds the most aucorrelation, it is reasonable to use it as the main regressor.
-        elif feature == "Close_lag_1":
-            stock_df_featurized['Close_lag_1'] = stock_df_featurized['Close'].shift()
-
-
-    # Drop nan values because of the shift
-    stock_df_featurized = stock_df_featurized.dropna()
-
-    # Save the dataset
-    #stock_df_featurized.to_csv("./data/processed/processed_stock_prices.csv", index=False)
-    stock_df_featurized.to_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), index=False)
-
-    return stock_df_featurized
 
 
 def ts_train_test_split(data: pd.DataFrame, target:str, test_size: int):
@@ -385,146 +321,6 @@ def stepwise_forecasting(model, X, y, forecast_horizon):
     return model_mape, model_rmse, model_mae
 
 
-def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, stock_name: str) -> pd.DataFrame:
-    """
-    Make predictions for the next `forecast_horizon` days using a XGBoost model.
-    This model is validated using One Shot Training, it means that we train the model
-    once, and them perform the `forecast_horizon` predictions only loading the mdoel.
-    
-    Parameters:
-        X (pandas dataframe): The input data
-        y (pandas dataframe): The target data
-        forecast_horizon (int): Number of days to forecast
-        
-    Returns:
-        pred_df: Pandas DataFrame with the forecasted values
-    """
-
-    # Create empty list for storing each prediction
-    predictions = []
-    actuals = []
-    dates = []
-    
-    # get the one-shot training set
-    X_train = X.iloc[:-forecast_horizon, :]
-    y_train = y.iloc[:-forecast_horizon]
-    
-    # load the best model
-    xgboost_model = load(f"./models/{stock_name}_params.joblib")
-    # get the best parameters
-    parameters = xgboost_model.get_xgb_params()
-
-    # start the mlflow tracking
-    with mlflow.start_run(run_name="model_validation") as run:
-
-        # fit the model again with the best parameters
-        print(parameters)
-
-        xgboost_model = xgb.XGBRegressor(
-            **parameters
-        )
-        
-
-        # train the model
-        xgboost_model.fit(
-            X_train.drop("Date", axis=1),
-            y_train,
-            eval_set=[(X_train.drop("Date", axis=1), y_train)],
-            eval_metric=["rmse", "logloss"],
-
-        )
-
-        # Iterate over the dataset to perform predictions over the forecast horizon, one by one.
-        # After forecasting the next step, we need to update the "lag" features with the last forecasted
-        # value
-        for day in range(forecast_horizon-4, 0, -1):
-            
-            if day != 1:
-                # the testing set will be the next day after the training and we use the complete dataset
-                X_test = X.iloc[-day:-day+1,:]
-                y_test = y.iloc[-day:-day+1]
-
-            else:
-                # need to change the syntax for the last day (for -1:-2 will not work)
-                X_test = X.iloc[-day:,:]
-                y_test = y.iloc[-day:]
-
-            # only the first iteration will use the true value of Close_lag_1
-            # because the following ones will use the last predicted value as true value
-            # so we simulate the process of predicting out-of-sample
-            if len(predictions) != 0:
-                
-                # we need to update the X_test["Close_lag_1"] value, because
-                # it should be equal to the last prediction (the "yesterday" value)
-                X_test.iat[0, -1] = predictions[-1]            
-
-            else:
-                pass
-
-            # make prediction
-            prediction = xgboost_model.predict(X_test.drop("Date", axis=1))
-
-            # store the results
-            predictions.append(prediction[0])
-            actuals.append(y_test.values[0])
-            dates.append(X_test["Date"].max())
-
-        # Calculate the resulting metric
-        model_mape = round(mean_absolute_percentage_error(actuals, predictions), 4)
-        model_rmse = round(np.sqrt(mean_squared_error(actuals, predictions)), 2)
-
-        pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["Date", 'Actual', 'Forecast'])
-        pred_df["Forecast"] = pred_df["Forecast"].astype("float64")
-        fig = visualize_validation_results(pred_df, model_mape, model_rmse, stock_name)
-        # get the training results
-        learning_results = xgboost_model.evals_result()
-      
-        # Plotting the Learning Results
-        fig2, axs = plt.subplots(1, 2, figsize=(12, 5))
-        plt.suptitle("XGBoost Learning Curves")
-        axs[0].plot(learning_results['validation_0']['rmse'], label='Training')
-        axs[0].set_title("RMSE Metric")
-        axs[0].set_ylabel("RMSE")
-        axs[0].set_xlabel("Iterations")
-        axs[0].legend()
-
-        axs[1].plot(learning_results['validation_0']['logloss'], label='Training')
-        axs[1].set_title("Logloss Metric")
-        axs[1].set_ylabel("Logloss")
-        axs[1].set_xlabel("Iterations")
-        axs[1].legend()
-        #plt.show()
-        # ---- logging ----
-
-        # log the parameters
-        mlflow.log_params(parameters)
-
-        # log the metrics
-        mlflow.log_metric("MAPE", model_mape)
-        mlflow.log_metric("RMSE", model_rmse)
-
-        # log the figure
-        mlflow.log_figure(fig, "validation_results.png")
-        mlflow.log_figure(fig2, "learning_curves.png")
-
-        # get model signature
-        model_signature = infer_signature(X_train, pd.DataFrame(y_train))
-
-        # log the model to mlflow
-        mlflow.xgboost.log_model(
-            xgb_model=xgboost_model,
-            artifact_path="xgboost_model",
-            input_example=X_train.head(),
-            signature=model_signature
-        )
-
-        # execute the CD pipeline
-        cd_pipeline(run.info, y_train, pred_df, model_mape)
-
-    
-    return pred_df
-
-
 def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list: list):
     """
     Create a future dataframe for forecasting.
@@ -544,7 +340,7 @@ def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list:
 
     # build the features for the future dataframe using the specified features
     inference_features_list = features_list[:-1]
-    future_df = build_features(future_df, inference_features_list)
+    future_df = build_features(future_df, inference_features_list, save=False)
 
     # filter out weekends from the future dataframe
     future_df["day_of_week"] = future_df.Date.apply(lambda x: x.day_name())
@@ -580,11 +376,6 @@ def make_predict(model, forecast_horizon: int, future_df: pd.DataFrame) -> pd.Da
 
     # Create empty list for storing each prediction
     predictions = []
-
-    # load the model and predict
-    #model = load(os.path.join(MODELS_PATH, f"{model_config['REGISTER_MODEL_NAME']}.joblib"))
-    
-    # load the model using mlflow
 
     for day in range(0, forecast_horizon):
 
@@ -697,9 +488,13 @@ def compare_models(client, model_details, stage_version):
     # Get the new model MAPE
     candidate_model_mape = mlflow.get_run(model_details.run_id).data.metrics[model_config['VALIDATION_METRIC']]
 
-    # compare
+    # compare the MAPEs
+    print('\n')
+    print("-"*10 + " Continous Deployment Results " + "-"*10)
+
     if candidate_model_mape < current_model_mape:
-        print(f"Candidate model has a better {model_config['VALIDATION_METRIC']} than the active model. Switching models...")
+
+        print(f"Candidate model has a better or equal {model_config['VALIDATION_METRIC']} than the active model. Switching models...")
         
         # archive the previous version
         client.transition_model_version_stage(
@@ -717,7 +512,7 @@ def compare_models(client, model_details, stage_version):
 
 
     else:
-        print(f"Active model has a better {model_config['VALIDATION_METRIC']} than the candidate model.\nTransiting the staging model to None.")
+        print(f"Active model has a better {model_config['VALIDATION_METRIC']} than the candidate model.\nTransiting the new staging model to None.")
         
         client.transition_model_version_stage(
             name=model_config[f'REGISTER_MODEL_NAME_{stage_version}'],
@@ -725,13 +520,16 @@ def compare_models(client, model_details, stage_version):
             stage='None',
         )
         
-    print(f"Candidate: {model_config['VALIDATION_METRIC']} = {candidate_model_mape}\nCurrent: = {current_model_mape}")
+    print(f"Candidate {model_config['VALIDATION_METRIC']}: {candidate_model_mape}\nCurrent {model_config['VALIDATION_METRIC']}: {current_model_mape}")
+    print("-"*30)
+    print('\n')
 
 
 def cd_pipeline(run_info, y_train, pred_df, model_mape):
 
     logger.debug(" ----- Starting CD pipeline -----")
     
+    # create a new Mlflow client
     client = MlflowClient()
 
     # validate the predictions
@@ -745,4 +543,6 @@ def cd_pipeline(run_info, y_train, pred_df, model_mape):
     else:
         logger.info("The model is not reliable. Discarding it.")
 
-    
+    logger.debug(" ----- CD pipeline finished -----")
+
+
