@@ -18,17 +18,13 @@ def main():
     # make the dataset
     PERIOD = '800d'
     INTERVAL = '1d'
+    STOCK_NAME = 'BOVA11.SA'  #str(input("Which stock do you want to track? "))
+
     features_list = ["day_of_month", "month", "quarter", "Close_lag_1"]
     client = MlflowClient()
     models_versions = []
 
-    #STOCK_NAME = 'BOVA11.SA'  #str(input("Which stock do you want to track? "))
-    STOCK_NAME = st.selectbox(
-        "Which stock do you want to track?",
-        ("BOVA11.SA")#, "ITUB4.SA", "VALE3.SA", "NFLX")
-    )
-    st.write("You selected:", STOCK_NAME)
-
+    logger.debug("Loading the featurized dataset..")
     # load the featurized dataset
     stock_df_feat = pd.read_csv("./data/processed/processed_stock_prices.csv", parse_dates=["Date"])
 
@@ -68,9 +64,9 @@ def main():
 # Execute the whole pipeline
 if __name__ == "__main__":
 
-    logger.info("Starting the Inference pipeline..")
+    logger.info("Starting the Inference pipeline..\n")
 
     main()
 
-    logger.info("Inference Pipeline was sucessful!")
+    logger.info("Inference Pipeline was sucessful!\n")
 
