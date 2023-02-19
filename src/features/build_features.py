@@ -5,13 +5,6 @@ sys.path.insert(0,'.')
 
 from src.utils import *
 
-# Load the dataset
-stock_df = pd.read_csv('./data/raw/raw_stock_prices.csv', parse_dates=True)
-stock_df['Date'] = pd.to_datetime(stock_df['Date'])
-
-# Filter the time to include only pos COVID period
-#stock_df = stock_df[stock_df['Date'] >= pd.to_datetime('2020-09-01')]
-
 
 def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -> pd.DataFrame:
     """
@@ -24,8 +17,7 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
     :return: Pandas DataFrame with the new features
     """
 
-    logger.info("Building the features...")
-
+    logger.debug("Started building features...")
     stock_df_featurized = raw_df.copy()
     for feature in features_list:
         
@@ -47,19 +39,30 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
     # Drop nan values because of the shift
     stock_df_featurized = stock_df_featurized.dropna()
     try:
+        logger.debug("Rounding the features to 2 decimal places...")
+        # handle exception when building the future dataset
         stock_df_featurized['Close'] = stock_df_featurized['Close'].apply(lambda x: round(x, 2))
+        stock_df_featurized['Close_lag_1'] = stock_df_featurized['Close_lag_1'].apply(lambda x: round(x, 2))
+        
     except KeyError:
         pass
-    stock_df_featurized['Close_lag_1'] = stock_df_featurized['Close_lag_1'].apply(lambda x: round(x, 2))
+    
 
-    # Save the dataset
-    #stock_df_featurized.to_csv("./data/processed/processed_stock_prices.csv", index=False)
     if save:
         stock_df_featurized.to_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), index=False)
-    logger.info("Features built successfully!")
+
+    logger.debug("Features built successfully!")
 
     return stock_df_featurized
 
 
 
-stock_df_feat = build_features(stock_df, features_list)
+if __name__ == '__main__':
+
+    logger.debug("Loading the raw dataset to featurize it...")
+    stock_df = pd.read_csv(os.path.join(RAW_DATA_PATH, 'raw_stock_prices.csv'), parse_dates=['Date'])
+
+    logger.info("Featurizing the dataset...")
+    stock_df_feat = build_features(stock_df, features_list)
+
+    logger.info("Finished featurizing the dataset!")
