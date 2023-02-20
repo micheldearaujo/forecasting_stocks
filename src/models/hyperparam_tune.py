@@ -39,7 +39,7 @@ def objective(search_space: dict):
     return {'loss': model_rmse, 'status': STATUS_OK}
 
 
-def optimize_model_params(objective_function, search_space: dict):
+def optimize_model_params(objective_function, search_space: dict, X_train, y_train, X_test, y_test, X_val, y_val):
     """Function that perform hyperparameter tuning using Hyperopt and returns the best parameters.
 
     Args:
@@ -136,8 +136,22 @@ def hyperopt_tune_pipeline():
     y_val = stock_df_feat[model_config["TARGET_NAME"]].iloc[-model_config["FORECAST_HORIZON"]+4:]
 
     # call the optimization function
-    xgboost_best_params = optimize_model_params(objective, xgboost_hyperparameter_config)
+    #xgboost_best_params = optimize_model_params(objective, xgboost_hyperparameter_config, X_train, y_train, X_test, y_test, X_val, y_val)
+        # define the algo
+    algorithm = tpe.suggest
 
+    logger.debug("Running the Fmin()")
+    eval_params = fmin(
+        fn=objective,
+        space=xgboost_hyperparameter_config,
+        algo=algorithm,
+        max_evals=50,
+        verbose=False,
+        show_progressbar=True,
+    )
+    
+    logger.debug("Extracting the best params...")
+    xgboost_best_params = space_eval(xgboost_hyperparameter_config, eval_params)
     # now train the model with the best params just to save them
     logger.debug("Training the model with the best params...")
     xgboost_model = xgb.XGBRegressor(

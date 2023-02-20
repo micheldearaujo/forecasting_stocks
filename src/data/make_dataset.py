@@ -34,6 +34,6 @@ if __name__ == '__main__':
 
     logger.info("Downloading the raw dataset...")
 
-    make_dataset(STOCK_NAME, PERIOD, INTERVAL)
+    stock_df = make_dataset(STOCK_NAME, PERIOD, INTERVAL)
 
     logger.info("Finished downloading the raw dataset!")
