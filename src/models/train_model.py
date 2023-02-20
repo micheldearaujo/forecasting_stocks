@@ -79,9 +79,7 @@ def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False
     return fig
 
 
-# Execute the whole pipeline
-if __name__ == "__main__":
-    logger.info("\nStarting the training pipeline...\n")
+def train_pipeline():
 
     # create the mlflow client
     client = MlflowClient()
@@ -156,10 +154,17 @@ if __name__ == "__main__":
         client.update_model_version(
             name=model_config["REGISTER_MODEL_NAME_INF"],
             version=model_details.version,
-            description=f"""This is the inference model for stock {STOCK_NAME}, trained based on the Hyeperparameters
+            description=f"""This is the inference model for stock {STOCK_NAME}, trained based on the Hyperparameters
             from the validation model version {current_prod_model['version']} \
             in Production."""
     )
 
 
+# Execute the whole pipeline
+if __name__ == "__main__":
+    logger.info("\nStarting the training pipeline...\n")
+
+    train_pipeline()
+
     logger.info("Training Pipeline was sucessful!\n")
+

@@ -99,8 +99,8 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
       
         # Plotting the Learning Results
         fig2 = extract_learning_curves(xgboost_model)
-        # ---- logging ----
 
+        # ---- logging ----
         logger.debug("Logging the results to MLFlow")
         # log the parameters
         mlflow.log_params(parameters)
@@ -130,10 +130,8 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     
     return pred_df
 
-# Execute the whole pipeline
 
-if __name__ == "__main__":
-    logger.info("Starting the Model Evaluation pipeline..")
+def model_validation_pipeline():
 
     logger.debug("Loading the featurized dataset..")
     stock_df_feat = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
@@ -145,4 +143,11 @@ if __name__ == "__main__":
         stock_name=STOCK_NAME
     )
 
+# Execute the whole pipeline
+
+if __name__ == "__main__":
+    logger.info("Starting the Model Evaluation pipeline..")
+
+    model_validation_pipeline()
+    
     logger.info("Model Evaluation Pipeline was sucessful!")

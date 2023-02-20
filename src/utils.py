@@ -275,52 +275,6 @@ def validate_model_stepwise(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     return pred_df
 
 
-def stepwise_forecasting(model, X, y, forecast_horizon):
-    predictions = []
-    actuals = []
-    dates = []
-    # Iterate over the dataset to perform predictions over the forecast horizon, one by one.
-    # After forecasting the next step, we need to update the "lag" features with the last forecasted
-    # value
-    for day in range(forecast_horizon-4, 0, -1):
-        
-        if day != 1:
-            # the testing set will be the next day after the training and we use the complete dataset
-            X_test = X.iloc[-day:-day+1,:]
-            y_test = y.iloc[-day:-day+1]
-
-        else:
-            # need to change the syntax for the last day (for -1:-2 will not work)
-            X_test = X.iloc[-day:,:]
-            y_test = y.iloc[-day:]
-
-        # only the first iteration will use the true value of Close_lag_1
-        # because the following ones will use the last predicted value as true value
-        # so we simulate the process of predicting out-of-sample
-        if len(predictions) != 0:
-            
-            # we need to update the X_test["Close_lag_1"] value, because
-            # it should be equal to the last prediction (the "yesterday" value)
-            X_test.iat[0, -1] = predictions[-1]            
-
-        else:
-            pass
-
-        # make prediction
-        prediction = model.predict(X_test)
-
-        # store the results
-        predictions.append(prediction[0])
-        actuals.append(y_test.values[0])
-
-    # Calculate the resulting metric
-    model_mape = round(mean_absolute_percentage_error(actuals, predictions), 4)
-    model_rmse = round(np.sqrt(mean_squared_error(actuals, predictions)), 2)
-    model_mae = round(mean_absolute_error(actuals, predictions), 2)
-
-    return model_mape, model_rmse, model_mae
-
-
 def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list: list):
     """
     Create a future dataframe for forecasting.
@@ -521,7 +475,7 @@ def compare_models(client, model_details, stage_version):
         )
         
     print(f"Candidate {model_config['VALIDATION_METRIC']}: {candidate_model_mape}\nCurrent {model_config['VALIDATION_METRIC']}: {current_model_mape}")
-    print("-"*30)
+    print("-"*50)
     print('\n')
 
 
