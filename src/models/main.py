@@ -8,8 +8,9 @@ from src.models.train_model import train_pipeline
 from src.models.predict_model import predict_pipeline
 from src.models.hyperparam_tune import hyperopt_tune_pipeline
 from src.models.validate_model import model_validation_pipeline
+from src.models.app import front_end
 
-def execute_full_pipeline():
+async def execute_full_pipeline():
     """
     Main function that executes the full pipeline.
     
@@ -18,6 +19,8 @@ def execute_full_pipeline():
     Returns:
         None
     """
+
+    task = asyncio.create_task(front_end())
     logger.info("Starting the full pipeline..\n")
     
     # execute the data ingestion pipeline
@@ -42,6 +45,11 @@ def execute_full_pipeline():
     
     logger.info("Full pipeline executed sucessfully!")
 
+    await asyncio.sleep(5)
 
 
-execute_full_pipeline()
+
+
+
+asyncio.run(execute_full_pipeline())
+
