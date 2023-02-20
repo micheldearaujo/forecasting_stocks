@@ -36,7 +36,7 @@ def objective(search_space: dict):
     logger.debug("Evaluating the Hyperopt model...")
     model_mape, model_rmse, model_mae = stepwise_forecasting(model, X_val, y_val, model_config["FORECAST_HORIZON"])
     
-    return {'loss': model_mae, 'status': STATUS_OK}
+    return {'loss': model_rmse, 'status': STATUS_OK}
 
 
 def optimize_model_params(objective_function, search_space: dict):
@@ -58,7 +58,7 @@ def optimize_model_params(objective_function, search_space: dict):
         fn=objective,
         space=search_space,
         algo=algorithm,
-        max_evals=30,
+        max_evals=50,
         verbose=False,
         show_progressbar=True,
     )
@@ -70,11 +70,54 @@ def optimize_model_params(objective_function, search_space: dict):
     
     return xgboost_best_params
 
-# Execute the whole pipeline
 
-if __name__ == "__main__":
+def stepwise_forecasting(model, X, y, forecast_horizon):
+    predictions = []
+    actuals = []
+    dates = []
+    # Iterate over the dataset to perform predictions over the forecast horizon, one by one.
+    # After forecasting the next step, we need to update the "lag" features with the last forecasted
+    # value
+    for day in range(forecast_horizon-4, 0, -1):
+        
+        if day != 1:
+            # the testing set will be the next day after the training and we use the complete dataset
+            X_test = X.iloc[-day:-day+1,:]
+            y_test = y.iloc[-day:-day+1]
 
-    logger.info("Starting the Cross Validation pipeline..")
+        else:
+            # need to change the syntax for the last day (for -1:-2 will not work)
+            X_test = X.iloc[-day:,:]
+            y_test = y.iloc[-day:]
+
+        # only the first iteration will use the true value of Close_lag_1
+        # because the following ones will use the last predicted value as true value
+        # so we simulate the process of predicting out-of-sample
+        if len(predictions) != 0:
+            
+            # we need to update the X_test["Close_lag_1"] value, because
+            # it should be equal to the last prediction (the "yesterday" value)
+            X_test.iat[0, -1] = predictions[-1]            
+
+        else:
+            pass
+
+        # make prediction
+        prediction = model.predict(X_test)
+
+        # store the results
+        predictions.append(prediction[0])
+        actuals.append(y_test.values[0])
+
+    # Calculate the resulting metric
+    model_mape = round(mean_absolute_percentage_error(actuals, predictions), 4)
+    model_rmse = round(np.sqrt(mean_squared_error(actuals, predictions)), 2)
+    model_mae = round(mean_squared_error(actuals, predictions), 2)
+
+    return model_mape, model_rmse, model_mae
+
+
+def hyperopt_tune_pipeline():
 
     logger.debug("Loading the featurized dataset..")
     stock_df_feat = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
@@ -111,6 +154,13 @@ if __name__ == "__main__":
     logger.debug("Saving the model with Joblib in order to use the parameters later...")
 
     dump(xgboost_model, f"./models/{STOCK_NAME}_params.joblib")
+
+# Execute the whole pipeline
+if __name__ == "__main__":
+
+    logger.info("Starting the Cross Validation pipeline..")
+
+    hyperopt_tune_pipeline()
 
     logger.info("Cross Validation Pipeline was sucessful!")
 
