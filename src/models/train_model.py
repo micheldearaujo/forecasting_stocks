@@ -25,17 +25,71 @@ def load_production_model_params(client):
 
     return prod_validation_model_params_new, current_prod_model
         
+
+def train_inference_model(X_train, y_train, params):
+    # use existing params
+    xgboost_model = xgb.XGBRegressor(
+        **params
+    )
+
+    # train the model
+    xgboost_model.fit(
+        X_train,
+        y_train,
+        eval_set=[(X_train, y_train)],
+        eval_metric=["rmse", "logloss"],
+        verbose=0
+    )
+
+    return xgboost_model
+
+
+def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False):
+    """Extracting the XGBoost Learning Curves.
+    Can display the figure or not.
+
+    Args:
+        model (xgb.sklearn.XGBRegressor): Fit XGBoost model
+        display (bool, optional): Display the figure. Defaults to False.
+
+    Returns:
+        _type_: Matplotlib figure
+    """
+
+    # extract the learning curves
+    learning_results = model.evals_result()
+
+    fig, axs = plt.subplots(1, 2, figsize=(12, 5))
+    plt.suptitle("XGBoost Learning Curves")
+    axs[0].plot(learning_results['validation_0']['rmse'], label='Training')
+    axs[0].set_title("RMSE Metric")
+    axs[0].set_ylabel("RMSE")
+    axs[0].set_xlabel("Iterations")
+    axs[0].legend()
+
+    axs[1].plot(learning_results['validation_0']['logloss'], label='Training')
+    axs[1].set_title("Logloss Metric")
+    axs[1].set_ylabel("Logloss")
+    axs[1].set_xlabel("Iterations")
+    axs[1].legend()
+
+    if display:
+        plt.show()
+    
+    return fig
+
+
 # Execute the whole pipeline
 if __name__ == "__main__":
-    logger.info("Starting the training pipeline...\n")
+    logger.info("\nStarting the training pipeline...\n")
 
     # create the mlflow client
     client = MlflowClient()
     
     logger.debug("Loading the featurized dataset..")
-    stock_df_feat = pd.read_csv("./data/processed/processed_stock_prices.csv", parse_dates=["Date"])
+    stock_df_feat = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
 
-    logger.debug("Splitting the dataset into train and test..")
+    logger.debug("Creating training dataset..")
     X_train=stock_df_feat.drop([model_config["TARGET_NAME"], "Date"], axis=1)
     y_train=stock_df_feat[model_config["TARGET_NAME"]]
 
@@ -43,47 +97,19 @@ if __name__ == "__main__":
     logger.debug("Loading the production model parameters..")
     prod_validation_model_params, current_prod_model = load_production_model_params(client)
 
-    logger.debug("Training the model..")
+    
     with mlflow.start_run(run_name="model_inference") as run:
 
-        # use existing params
-        xgboost_model = xgb.XGBRegressor(
-            **prod_validation_model_params
-        )
-
-        # train the model
-        xgboost_model.fit(
-            X_train,
-            y_train,
-            eval_set=[(X_train, y_train)],
-            eval_metric=["rmse", "logloss"],
-            verbose=0
-        )
+        logger.debug("Training the model..")
+        xgboost_model = train_inference_model(X_train, y_train, prod_validation_model_params)
 
         logger.debug("Plotting the learning curves..")
-        learning_results = xgboost_model.evals_result()
-      
-        # Plotting the Learning Results
-        fig2, axs = plt.subplots(1, 2, figsize=(12, 5))
-        plt.suptitle("XGBoost Learning Curves")
-        axs[0].plot(learning_results['validation_0']['rmse'], label='Training')
-        axs[0].set_title("RMSE Metric")
-        axs[0].set_ylabel("RMSE")
-        axs[0].set_xlabel("Iterations")
-        axs[0].legend()
-
-        axs[1].plot(learning_results['validation_0']['logloss'], label='Training')
-        axs[1].set_title("Logloss Metric")
-        axs[1].set_ylabel("Logloss")
-        axs[1].set_xlabel("Iterations")
-        axs[1].legend()
-
-        # ---- logging ----
+        fig = extract_learning_curves(xgboost_model)
 
         logger.debug("Logging the results..")
         # log the parameters
         mlflow.log_params(prod_validation_model_params)
-        mlflow.log_figure(fig2, "learning_curves.png")
+        mlflow.log_figure(fig, "learning_curves.png")
 
         # get model signature
         model_signature = infer_signature(X_train, pd.DataFrame(y_train))
@@ -91,7 +117,7 @@ if __name__ == "__main__":
         # log the model to mlflow
         mlflow.xgboost.log_model(
             xgb_model=xgboost_model,
-            artifact_path="xgboost_model",
+            artifact_path=model_config['MODEL_NAME'],
             input_example=X_train.head(),
             signature=model_signature
         )
