@@ -4,8 +4,7 @@ sys.path.insert(0,'.')
 from src.utils import *
 
 
-
-def main():
+def front_end():
     """
     Main function that creates a future dataframe, makes predictions, and prints the predictions.
 
@@ -56,4 +55,4 @@ def main():
 # Execute the whole pipeline
 if __name__ == "__main__":
 
-    main()
+    front_end()

@@ -6,7 +6,7 @@ from src.features.build_features import build_features
 
 features_list = ["day_of_month", "month", "quarter", "Close_lag_1"]
 
-def main():
+def predict_pipeline():
     """
     Main function that creates a future dataframe, makes predictions, and prints the predictions.
 
@@ -54,13 +54,12 @@ def main():
     logger.debug("Predictions written sucessfully!")
 
 
-
 # Execute the whole pipeline
 if __name__ == "__main__":
 
     logger.info("Starting the Inference pipeline..\n")
 
-    main()
+    predict_pipeline()
 
     logger.info("Inference Pipeline was sucessful!\n")
 
