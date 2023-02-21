@@ -3,6 +3,9 @@ sys.path.insert(0,'.')
 
 from src.utils import *
 from src.features.build_features import build_features
+from src.models.model_utils import (
+    make_predict
+)
 
 features_list = ["day_of_month", "month", "quarter", "Close_lag_1"]
 

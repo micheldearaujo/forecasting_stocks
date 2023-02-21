@@ -14,8 +14,8 @@ install-aws:
 	pip install --upgrade pip &&\
 		pip install -r requirements-aws.txt
 
-#test:
-#	python -m pytest -vv --cov=src/utils tests/test_utils.py
+test:
+	python -m pytest -vv --cov=src/utils tests/test_utils.py
 
 lint:
 	pylint --disable=R,C *.py

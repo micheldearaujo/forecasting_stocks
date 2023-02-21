@@ -52,4 +52,3 @@ async def execute_full_pipeline():
 
 
 asyncio.run(execute_full_pipeline())
-

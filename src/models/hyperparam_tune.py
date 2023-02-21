@@ -39,7 +39,7 @@ def objective(search_space: dict):
     return {'loss': model_rmse, 'status': STATUS_OK}
 
 
-def optimize_model_params(objective_function, search_space: dict, X_train, y_train, X_test, y_test, X_val, y_val):
+def optimize_model_params(objective_function, search_space: dict, X_train, y_train, X_test, y_test, X_val, y_val) -> dict:
     """Function that perform hyperparameter tuning using Hyperopt and returns the best parameters.
 
     Args:
@@ -66,12 +66,10 @@ def optimize_model_params(objective_function, search_space: dict, X_train, y_tra
     logger.debug("Extracting the best params...")
     xgboost_best_params = space_eval(search_space, eval_params)
     
-    #{k: v for k, v in best_params.items() if k in xgboost_hyperparameter_config.keys()}
-    
     return xgboost_best_params
 
 
-def stepwise_forecasting(model, X, y, forecast_horizon):
+def stepwise_forecasting(model: xgb.sklearn.XGBRegressor, X: pd.DataFrame, y: pd.Series, forecast_horizon: int) -> tuple:
     predictions = []
     actuals = []
     dates = []
@@ -118,7 +116,12 @@ def stepwise_forecasting(model, X, y, forecast_horizon):
 
 
 def hyperopt_tune_pipeline():
+    pass
 
+# Execute the whole pipeline
+if __name__ == "__main__":
+
+    logger.info("Starting the Cross Validation pipeline..")
     logger.debug("Loading the featurized dataset..")
     stock_df_feat = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
 
@@ -136,22 +139,8 @@ def hyperopt_tune_pipeline():
     y_val = stock_df_feat[model_config["TARGET_NAME"]].iloc[-model_config["FORECAST_HORIZON"]+4:]
 
     # call the optimization function
-    #xgboost_best_params = optimize_model_params(objective, xgboost_hyperparameter_config, X_train, y_train, X_test, y_test, X_val, y_val)
-        # define the algo
-    algorithm = tpe.suggest
-
-    logger.debug("Running the Fmin()")
-    eval_params = fmin(
-        fn=objective,
-        space=xgboost_hyperparameter_config,
-        algo=algorithm,
-        max_evals=50,
-        verbose=False,
-        show_progressbar=True,
-    )
+    xgboost_best_params = optimize_model_params(objective, xgboost_hyperparameter_config, X_train, y_train, X_test, y_test, X_val, y_val)
     
-    logger.debug("Extracting the best params...")
-    xgboost_best_params = space_eval(xgboost_hyperparameter_config, eval_params)
     # now train the model with the best params just to save them
     logger.debug("Training the model with the best params...")
     xgboost_model = xgb.XGBRegressor(
@@ -168,12 +157,6 @@ def hyperopt_tune_pipeline():
     logger.debug("Saving the model with Joblib in order to use the parameters later...")
 
     dump(xgboost_model, f"./models/{STOCK_NAME}_params.joblib")
-
-# Execute the whole pipeline
-if __name__ == "__main__":
-
-    logger.info("Starting the Cross Validation pipeline..")
-
     hyperopt_tune_pipeline()
 
     logger.info("Cross Validation Pipeline was sucessful!")
