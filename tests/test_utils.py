@@ -4,13 +4,14 @@ import os
 
 sys.path.insert(0,'.')
 import matplotlib
+import pytest
+
 from src.utils import *
 from src.models.model_utils import *
 from src.features.build_features import build_features
 from src.data.make_dataset import make_dataset
 from src.models.train_model import *
 from src.models.hyperparam_tune import optimize_model_params, stepwise_forecasting
-import pytest
 
 PERIOD = '800d'
 INTERVAL = '1d'
@@ -479,9 +480,6 @@ def test_extract_learning_curves():
     # Assert
     assert isinstance(fig, matplotlib.figure.Figure)
 
-
-
-import pytest
 
 @pytest.fixture
 def mock_model():
