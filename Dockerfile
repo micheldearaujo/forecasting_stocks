@@ -9,4 +9,4 @@ EXPOSE 8080
 
 RUN pip3 install -r requirements.txt
 
-RUN streamlit run src/models/predict_model.py
+RUN python3 -m streamlit run src/models/app.py --server.port 8080
