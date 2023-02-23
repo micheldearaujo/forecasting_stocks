@@ -156,7 +156,7 @@ def visualize_forecast(pred_df: pd.DataFrame, historical_df: pd.DataFrame, stock
     return fig
 
 
-def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list: list):
+def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list: list) -> pd.DataFrame:
     """
     Create a future dataframe for forecasting.
 

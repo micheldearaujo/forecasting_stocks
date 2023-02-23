@@ -264,7 +264,7 @@ def compare_models(client, model_details, stage_version) -> None:
     print('\n')
     print("-"*10 + " Continous Deployment Results " + "-"*10)
 
-    if candidate_model_mape < current_model_mape:
+    if candidate_model_mape <= current_model_mape:
 
         print(f"Candidate model has a better or equal {model_config['VALIDATION_METRIC']} than the active model. Switching models...")
         

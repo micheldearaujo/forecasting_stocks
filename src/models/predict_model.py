@@ -52,7 +52,7 @@ def predict_pipeline():
     # write the predictions to a csv file
     logger.debug("Writing the predictions to a csv file...")
 
-    predictions_df.to_csv(os.path.join(PROCESSED_DATA_PATH, 'output_stock_prices.csv'), index=False)
+    predictions_df.to_csv(os.path.join(OUTPUT_DATA_PATH, 'output_stock_prices.csv'), index=False)
 
     logger.debug("Predictions written sucessfully!")
 

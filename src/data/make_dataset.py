@@ -5,7 +5,7 @@ sys.path.insert(0,'.')
 from src.utils import *
 
 
-def make_dataset(stock_name: str, period: str, interval: str):
+def make_dataset(stock_name: str, period: str, interval: str) -> pd.DataFrame:
     """
     Creates a dataset of the closing prices of a given stock.
     

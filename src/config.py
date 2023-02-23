@@ -70,6 +70,7 @@ features_list = ["day_of_month", "month", "quarter", "Close_lag_1"]
 PERIOD = '800d'
 INTERVAL = '1d'
 STOCK_NAME = 'BOVA11.SA'
+stocks_list = ["BOVA11.SA", "ITUB4.SA", "VALE3.SA", "NFLX"]
 
 # Configura o logging
 log_format = "[%(name)s][%(levelname)-6s] %(message)s"
@@ -116,11 +117,15 @@ xgboost_fixed_model_config = {
     'SUBSAMPLE': 1.0
 }
 xgboost_hyperparameter_config = {
-    'max_depth': hp.choice('max_depth', [4, 9, 11, 30]),
-    'learning_rate': hp.choice('learning_rate', [0.01, 0.08 ,0.1, 0.5, 1.0]),
-    'gamma': hp.choice('gamma', [0.01, 0.08, 0.1, 1.0]),
-    'reg_lambda': hp.choice('reg_lambda', [1, 10, 30, 100]),
-    'n_estimators': hp.choice('n_estimators', [40, 200, 300, 1000]),
-    'scale_pos_weight': hp.choice('scale_pos_weight', [1, 2, 3, 4, 10, 15]),
-    'colsample_bytree': hp.choice('colsample_bytree', [1.0]),
+    'max_depth': hp.choice('max_depth', [1, 2, 4, 9, 11, 30]),
+    'learning_rate': hp.choice('learning_rate', [0.01, 0.03, 0.05, 0.08 ,0.1, 0.5, 1.0]),
+    'gamma': hp.choice('gamma', [0.005, 0.01, 0.08, 0.1, 1.0]),
+    'reg_lambda': hp.choice('reg_lambda', [1, 10, 30, 40, 50, 60]),
+    'n_estimators': hp.choice('n_estimators', [40, 150, 180, 200, 230, 250, 300]),
+    'scale_pos_weight': hp.choice('scale_pos_weight', [2, 3, 4, 10, 15, 17, 20, 25, 30]),
+    'colsample_bytree': hp.choice('colsample_bytree', [0.8, 1.0]),
+    'min_child_weight': hp.choice('min_child_weight', [1, 2, 4, 7, 8, 10]),
+    'subsample': hp.choice('subsample', [0.8, 1.0]),
+    'reg_alpha': hp.choice('reg_alpha', [0.01, 0.1, 0.25, 0.5, 1.0]),
+
 }

@@ -17,7 +17,6 @@ def objective(search_space: dict):
     
     # create model instance
     model = xgb.XGBRegressor(
-        subsample= xgboost_fixed_model_config['SUBSAMPLE'],
         seed = xgboost_fixed_model_config['SEED'],
         **search_space
     )
@@ -36,7 +35,7 @@ def objective(search_space: dict):
     logger.debug("Evaluating the Hyperopt model...")
     model_mape, model_rmse, model_mae = stepwise_forecasting(model, X_val, y_val, model_config["FORECAST_HORIZON"])
     
-    return {'loss': model_rmse, 'status': STATUS_OK}
+    return {'loss': model_mae, 'status': STATUS_OK}
 
 
 def optimize_model_params(objective_function, search_space: dict, X_train, y_train, X_test, y_test, X_val, y_val) -> dict:
@@ -58,7 +57,7 @@ def optimize_model_params(objective_function, search_space: dict, X_train, y_tra
         fn=objective,
         space=search_space,
         algo=algorithm,
-        max_evals=50,
+        max_evals=400,
         verbose=False,
         show_progressbar=True,
     )
@@ -110,7 +109,7 @@ def stepwise_forecasting(model: xgb.sklearn.XGBRegressor, X: pd.DataFrame, y: pd
     # Calculate the resulting metric
     model_mape = round(mean_absolute_percentage_error(actuals, predictions), 4)
     model_rmse = round(np.sqrt(mean_squared_error(actuals, predictions)), 2)
-    model_mae = round(mean_squared_error(actuals, predictions), 2)
+    model_mae = round(mean_absolute_error(actuals, predictions), 2)
 
     return model_mape, model_rmse, model_mae
 
@@ -140,7 +139,8 @@ if __name__ == "__main__":
 
     # call the optimization function
     xgboost_best_params = optimize_model_params(objective, xgboost_hyperparameter_config, X_train, y_train, X_test, y_test, X_val, y_val)
-    
+    logger.debug("best params: ")
+    logger.debug(xgboost_best_params)
     # now train the model with the best params just to save them
     logger.debug("Training the model with the best params...")
     xgboost_model = xgb.XGBRegressor(

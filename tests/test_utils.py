@@ -5,6 +5,7 @@ import os
 sys.path.insert(0,'.')
 import matplotlib
 import pytest
+from unittest.mock import MagicMock
 
 from src.utils import *
 from src.models.model_utils import *
@@ -177,66 +178,6 @@ def test_ts_train_test_split_train_types():
     assert isinstance(y_train.dtype, type(np.dtype("float64")))
 
 
-#def test_train_model_types():
-    # # train the model
-    # xgboost_model = train_model(
-    #     test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1),
-    #     test_stock_feat_df[model_config["TARGET_NAME"]],
-    #     test_model_params
-    # )
-
-    # assert isinstance(xgboost_model, xgb.sklearn.XGBRegressor)
-
-
-# def test_train_model_features():
-#     # train the model
-#     xgboost_model = train_model(
-#         test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1),
-#         test_stock_feat_df[model_config["TARGET_NAME"]],
-#         test_model_params
-#     )
-
-#     assert list(xgboost_model.feature_names_in_) == list(test_stock_feat_df.drop([model_config["TARGET_NAME"], "Date"], axis=1).columns)
-
-
-# def test_validate_model_stepwise_columns():
-
-#     predictions_df = validate_model_stepwise(
-#         X=test_stock_feat_df.drop([model_config["TARGET_NAME"]], axis=1),
-#         y=test_stock_feat_df[model_config["TARGET_NAME"]],
-#         forecast_horizon=TEST_FORECAST_HORIZON,
-#         stock_name=STOCK_NAME
-#     )
-
-#     assert test_predictions_df.columns.all() == predictions_df.columns.all()
-
-
-# def test_validate_model_stepwise_types():
-
-#     predictions_df = validate_model_stepwise(
-#         X=test_stock_feat_df.drop([model_config["TARGET_NAME"]], axis=1),
-#         y=test_stock_feat_df[model_config["TARGET_NAME"]],
-#         forecast_horizon=TEST_FORECAST_HORIZON,
-#         stock_name=STOCK_NAME
-#     )
-
-#     assert isinstance(predictions_df["Date"].dtype, type(np.dtype("datetime64[ns]")))
-#     assert isinstance(predictions_df["Actual"].dtype, type(np.dtype("float64")))
-#     assert isinstance(predictions_df["Forecast"].dtype, type(np.dtype("float64")))
-
-
-# def test_validate_model_stepwise_size():
-
-#     predictions_df = validate_model_stepwise(
-#         X=test_stock_feat_df.drop([model_config["TARGET_NAME"]], axis=1),
-#         y=test_stock_feat_df[model_config["TARGET_NAME"]],
-#         forecast_horizon=TEST_FORECAST_HORIZON,
-#         stock_name=STOCK_NAME
-#     )
-
-#     assert predictions_df.shape[0] == TEST_FORECAST_HORIZON
-
-
 def test_make_future_df_columns():
 
     # Create the future dataframe using the make_future_df function
@@ -393,6 +334,7 @@ def xgboost_hyperparameter_config():
         'n_estimators': {'type': 'integer', 'min': 50, 'max': 500, 'step': 50},
     }
 
+
 def test_load_production_model_params(mlflow_client, production_model_run, xgboost_hyperparameter_config):
     # mock mlflow.get_run to return the sample production model run
     mlflow.get_run = MagicMock(return_value=production_model_run)
@@ -408,6 +350,7 @@ def test_load_production_model_params(mlflow_client, production_model_run, xgboo
     }
     assert current_prod_model == {'name': 'model_name', 'current_stage': 'Production', 'run_id': '456'}
 
+
 def test_load_production_model_params_no_production(mlflow_client, production_model_run, xgboost_hyperparameter_config):
     # set search_model_versions to return a staging model instead of a production model
     mlflow_client.search_model_versions.return_value = [
@@ -418,6 +361,7 @@ def test_load_production_model_params_no_production(mlflow_client, production_mo
     # call the function with the sample client
     with pytest.raises(Exception):
         load_production_model_params(mlflow_client)
+
 
 def test_load_production_model_params_missing_hyperparameters(mlflow_client, production_model_run, xgboost_hyperparameter_config):
     # modify the production model's hyperparameters to include an unknown key
@@ -440,7 +384,6 @@ def test_load_production_model_params_missing_hyperparameters(mlflow_client, pro
         'learning_rate': '0.1',
         'n_estimators': '100'
     }
-
 
 
 def test_train_inference_model():
@@ -485,6 +428,7 @@ def test_extract_learning_curves():
 def mock_model():
     return xgb.XGBRegressor()
 
+
 @pytest.fixture
 def mock_data():
     X = pd.DataFrame({
@@ -495,17 +439,20 @@ def mock_data():
     y = pd.Series([12, 14, 17, 20, 22])
     return X, y
 
+
 def test_stepwise_forecasting_returns_tuple(mock_model, mock_data):
     X, y = mock_data
     trained_mock_model = mock_model.fit(X, y)
     result = stepwise_forecasting(trained_mock_model, X, y, 5)
     assert isinstance(result, tuple)
 
+
 def test_stepwise_forecasting_returns_expected_length(mock_model, mock_data):
     X, y = mock_data
     trained_mock_model = mock_model.fit(X, y)
     result = stepwise_forecasting(trained_mock_model, X, y, 5)
     assert len(result) == 3
+
 
 def test_stepwise_forecasting_returns_expected_metrics(mock_model, mock_data):
     X, y = mock_data
@@ -514,3 +461,6 @@ def test_stepwise_forecasting_returns_expected_metrics(mock_model, mock_data):
     assert result[0] == 0.0
     assert result[1] == 0.0
     assert result[2] == 0.0
+
+
+

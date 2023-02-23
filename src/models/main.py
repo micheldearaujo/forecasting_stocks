@@ -10,7 +10,7 @@ from src.models.hyperparam_tune import hyperopt_tune_pipeline
 from src.models.validate_model import model_validation_pipeline
 from src.models.app import front_end
 
-async def execute_full_pipeline():
+def execute_full_pipeline():
     """
     Main function that executes the full pipeline.
     
@@ -20,7 +20,7 @@ async def execute_full_pipeline():
         None
     """
 
-    task = asyncio.create_task(front_end())
+    #task = asyncio.create_task(front_end())
     logger.info("Starting the full pipeline..\n")
     
     # execute the data ingestion pipeline
@@ -32,8 +32,8 @@ async def execute_full_pipeline():
     stock_df_feat = build_features(stock_df, features_list)
 
     # execute the model Cross val pipeline
-    #logger.info("Executing the model tuning pipeline..\n")
-    #hyperopt_tune_pipeline()
+    logger.info("Executing the model tuning pipeline..\n")
+    hyperopt_tune_pipeline()
     
     # execute the model training pipeline
     logger.info("Executing the model training pipeline..\n")
@@ -45,10 +45,7 @@ async def execute_full_pipeline():
     
     logger.info("Full pipeline executed sucessfully!")
 
-    await asyncio.sleep(5)
 
 
 
-
-
-asyncio.run(execute_full_pipeline())
+execute_full_pipeline()

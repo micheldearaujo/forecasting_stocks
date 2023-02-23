@@ -4,7 +4,7 @@ sys.path.insert(0,'.')
 from src.utils import *
 
 
-async def front_end():
+def front_end():
     """
     Main function that creates a future dataframe, makes predictions, and prints the predictions.
 
