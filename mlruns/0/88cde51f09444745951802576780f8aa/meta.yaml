@@ -1,0 +1,15 @@
+artifact_uri: file:///home/michel/Projects/mlops_practice/mlruns/0/88cde51f09444745951802576780f8aa/artifacts
+end_time: 1676897197951
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 88cde51f09444745951802576780f8aa
+run_name: model_inference
+run_uuid: 88cde51f09444745951802576780f8aa
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1676897180988
+status: 3
+tags: []
+user_id: michel

@@ -4,7 +4,7 @@ sys.path.insert(0,'.')
 
 from src.utils import *
 
-def load_production_model_params(client):
+def load_production_model_params(client: mlflow.tracking.client.MlflowClient) -> tuple:
 
     # create empty list to store model versions
     models_versions = []
@@ -18,15 +18,17 @@ def load_production_model_params(client):
     prod_validation_model_params = mlflow.get_run(current_prod_model['run_id']).data.params
 
     # remove unsignificant params
-    prod_validation_model_params_new = {}
-    for key, value in prod_validation_model_params.items():
-        if key in xgboost_hyperparameter_config.keys():
-            prod_validation_model_params_new[key] = value
+    # prod_validation_model_params_new = {}
+    # for key, value in prod_validation_model_params.items():
+    #     if key in xgboost_hyperparameter_config.keys():
+    #         prod_validation_model_params_new[key] = value
+
+    prod_validation_model_params_new = {k: v for k, v in prod_validation_model_params.items() if k in xgboost_hyperparameter_config.keys()}
 
     return prod_validation_model_params_new, current_prod_model
         
 
-def train_inference_model(X_train, y_train, params):
+def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, params: dict) -> xgb.sklearn.XGBRegressor:
     # use existing params
     xgboost_model = xgb.XGBRegressor(
         **params
@@ -44,7 +46,7 @@ def train_inference_model(X_train, y_train, params):
     return xgboost_model
 
 
-def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False):
+def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False) -> matplotlib.figure.Figure:
     """Extracting the XGBoost Learning Curves.
     Can display the figure or not.
 
@@ -79,9 +81,7 @@ def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False
     return fig
 
 
-# Execute the whole pipeline
-if __name__ == "__main__":
-    logger.info("\nStarting the training pipeline...\n")
+def train_pipeline():
 
     # create the mlflow client
     client = MlflowClient()
@@ -156,10 +156,17 @@ if __name__ == "__main__":
         client.update_model_version(
             name=model_config["REGISTER_MODEL_NAME_INF"],
             version=model_details.version,
-            description=f"""This is the inference model for stock {STOCK_NAME}, trained based on the Hyeperparameters
+            description=f"""This is the inference model for stock {STOCK_NAME}, trained based on the Hyperparameters
             from the validation model version {current_prod_model['version']} \
             in Production."""
     )
 
 
+# Execute the whole pipeline
+if __name__ == "__main__":
+    logger.info("\nStarting the training pipeline...\n")
+
+    train_pipeline()
+
     logger.info("Training Pipeline was sucessful!\n")
+
