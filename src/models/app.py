@@ -13,6 +13,7 @@ def front_end():
     Returns:
         None
     """
+    st.write("Welcome to the Stock Forecaster!!")
 
     #STOCK_NAME = 'BOVA11.SA'  #str(input("Which stock do you want to track? "))
     STOCK_NAME = st.selectbox(
