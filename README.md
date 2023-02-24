@@ -29,7 +29,7 @@ Para instalar o projeto localmente
 ```python
   python3 src/models/train_model.py
   python3 src/models/predict_model.py
-  streamlit run src/models/predict_model.py
+  streamlit run src/models/app.py
 
 ```
 
