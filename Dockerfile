@@ -9,10 +9,8 @@ EXPOSE 8080
 
 RUN pip3 install -r requirements.txt
 
-WORKDIR /src/models
-
 # #, "src/models/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
 
 #RUN streamlit run src/models/app.py --server.port 8080
 ENTRYPOINT ["streamlit", "run"]
-CMD ["app.py", "--server.port=8080"]
+CMD ["/stock_forecaster/src/models/app.py", "--server.port=8080"]
