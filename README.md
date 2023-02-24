@@ -22,6 +22,7 @@ Para instalar o projeto localmente
   python3 -m venv forecasting_stocks
   source forecasting_stocks/bin/activate
   make install
+  make test
   make lint
 ```
 ## Usage/Examples
