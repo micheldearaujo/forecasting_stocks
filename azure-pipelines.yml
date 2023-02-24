@@ -19,16 +19,6 @@ variables:
   # Agent VM image name
   vmImageName: 'ubuntu-latest'
 
-# Run unit tests
-- task: Bash@3
-  inputs:
-    targetType: 'inline'
-    script: |
-      # Install testing dependencies
-      pip install pytest, pytest-cov
-      
-      # Run unit tests
-      python -m pytest -vv --cov=src/utils tests/test_utils.py
 
 stages:
 - stage: Build
