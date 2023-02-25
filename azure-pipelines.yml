@@ -17,3 +17,17 @@ steps:
     echo Add other tasks to build, test, and deploy your project.
     echo See https://aka.ms/yaml
   displayName: 'Run a multi-line script'
+  
+- script: |
+    python -m venv ~/.stockforecaster
+    source ~/.stockforecaster/bin/activate
+  displayName: Creating Virtual Environment
+
+- script: |
+    pip install -r requirements.txt
+  displayName: Install Dependencies
+  
+- script: |
+    pip install pytest-azurepipelines
+    python -m pytest -vv --cov=src/utils tests/test_utils.py
+  displayName: Unit tests
