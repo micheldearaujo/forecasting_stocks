@@ -1,0 +1,12 @@
+creation_timestamp: 1677328390624
+current_stage: Archived
+description: null
+last_updated_timestamp: 1677332812152
+name: Stock_Predictor_Validation_VALE3.SA
+run_id: d88d88d200674d7cb23acbdb5e53db85
+run_link: null
+source: file:///home/michel/Projects/mlops_practice/mlruns/0/d88d88d200674d7cb23acbdb5e53db85/artifacts/model_validation_VALE3.SA
+status: READY
+status_message: null
+user_id: null
+version: 2

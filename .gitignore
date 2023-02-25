@@ -23,6 +23,9 @@ var/
 .installed.cfg
 *.egg
 
+# mlruns
+mlruns/0/
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -74,6 +77,8 @@ target/
 
 # Jupyter NB Checkpoints
 .ipynb_checkpoints/
+# notebooks too
+notebooks/
 
 # exclude data from source control by default
 #/data/

@@ -1,0 +1,12 @@
+creation_timestamp: 1677328434901
+current_stage: Production
+description: ''
+last_updated_timestamp: 1677328443624
+name: Stock_Predictor_Validation_NFLX
+run_id: 94943f9ed3a245c18082e57b4497005a
+run_link: ''
+source: file:///home/michel/Projects/mlops_practice/mlruns/0/94943f9ed3a245c18082e57b4497005a/artifacts/xgboost_model_NFLX
+status: READY
+status_message: null
+user_id: null
+version: 1

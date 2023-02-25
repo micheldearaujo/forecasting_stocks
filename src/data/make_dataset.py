@@ -17,15 +17,21 @@ def make_dataset(stock_name: str, period: str, interval: str) -> pd.DataFrame:
     Returns:
         pandas.DataFrame: The dataframe containing the closing prices of the given stock.
     """
+    empty_df = pd.DataFrame()
+    
+    for stock_name in stocks_list:
 
-    stock_price_df = yfin.Ticker(stock_name).history(period=period, interval=interval)
-    stock_price_df['Stock'] = stock_name
-    stock_price_df = stock_price_df[['Close']]
-    stock_price_df = stock_price_df.reset_index()
-    stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
-    stock_price_df['Date'] = stock_price_df['Date'].apply(lambda x: x.date())
-    stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
-    stock_price_df.to_csv(os.path.join(RAW_DATA_PATH, 'raw_stock_prices.csv'), index=False)
+        stock_price_df = yfin.Ticker(stock_name).history(period=period, interval=interval)
+        stock_price_df['Stock'] = stock_name
+        stock_price_df = stock_price_df[['Stock', 'Close']]
+        stock_price_df = stock_price_df.reset_index()
+        stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
+        stock_price_df['Date'] = stock_price_df['Date'].apply(lambda x: x.date())
+        stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
+
+        empty_df = pd.concat([empty_df, stock_price_df], axis=0)
+
+    empty_df.to_csv(os.path.join(RAW_DATA_PATH, 'raw_stock_prices.csv'), index=False)
 
     return stock_price_df
 
@@ -34,6 +40,6 @@ if __name__ == '__main__':
 
     logger.info("Downloading the raw dataset...")
 
-    stock_df = make_dataset(STOCK_NAME, PERIOD, INTERVAL)
+    stock_df = make_dataset(stocks_list, PERIOD, INTERVAL)
 
     logger.info("Finished downloading the raw dataset!")

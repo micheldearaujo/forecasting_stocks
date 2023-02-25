@@ -18,6 +18,8 @@ def objective(search_space: dict):
     # create model instance
     model = xgb.XGBRegressor(
         seed = xgboost_fixed_model_config['SEED'],
+        eval_metric = ['mae'],
+        early_stopping_rounds = 50,
         **search_space
     )
 
@@ -25,8 +27,6 @@ def objective(search_space: dict):
     model.fit(
         X_train,
         y_train,
-        early_stopping_rounds = 50,
-        eval_metric = ['mae'],
         eval_set=[(X_train, y_train), (X_test, y_test)],
         verbose=0,
     )
@@ -122,42 +122,46 @@ if __name__ == "__main__":
 
     logger.info("Starting the Cross Validation pipeline..")
     logger.debug("Loading the featurized dataset..")
-    stock_df_feat = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
+    stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
 
-    # perform cross-validation until the last forecast horizon
-    cross_val_data = stock_df_feat[stock_df_feat.Date < stock_df_feat.Date.max() - dt.timedelta(days=model_config["FORECAST_HORIZON"])]
+    for stock_name in stock_df_feat_all.Stock.unique():
+        
+        # filter and drop the column
+        stock_df_feat = stock_df_feat_all[stock_df_feat_all.Stock == stock_name].drop("Stock", axis=1).copy()
 
-    logger.debug("Splitting the dataset into train and test sets..")
-    X_train, X_test, y_train, y_test = ts_train_test_split(cross_val_data, model_config["TARGET_NAME"], test_size=model_config["FORECAST_HORIZON"]-4)
-    X_train = X_train.drop("Date", axis=1)
-    X_test = X_test.drop("Date", axis=1)
-    
-    logger.debug("Getting the validation set...")
-    # final validation set
-    X_val = stock_df_feat.drop([model_config["TARGET_NAME"], "Date"], axis=1).iloc[-model_config["FORECAST_HORIZON"]+4:, :]
-    y_val = stock_df_feat[model_config["TARGET_NAME"]].iloc[-model_config["FORECAST_HORIZON"]+4:]
+        # perform cross-validation until the last forecast horizon
+        cross_val_data = stock_df_feat[stock_df_feat.Date < stock_df_feat.Date.max() - dt.timedelta(days=model_config["FORECAST_HORIZON"])]
 
-    # call the optimization function
-    xgboost_best_params = optimize_model_params(objective, xgboost_hyperparameter_config, X_train, y_train, X_test, y_test, X_val, y_val)
-    logger.debug("best params: ")
-    logger.debug(xgboost_best_params)
-    # now train the model with the best params just to save them
-    logger.debug("Training the model with the best params...")
-    xgboost_model = xgb.XGBRegressor(
-        **xgboost_best_params
-    )
+        logger.debug("Splitting the dataset into train and test sets..")
+        X_train, X_test, y_train, y_test = ts_train_test_split(cross_val_data, model_config["TARGET_NAME"], test_size=model_config["FORECAST_HORIZON"]-4)
+        X_train = X_train.drop("Date", axis=1)
+        X_test = X_test.drop("Date", axis=1)
+        
+        logger.debug("Getting the validation set...")
+        # final validation set
+        X_val = stock_df_feat.drop([model_config["TARGET_NAME"], "Date"], axis=1).iloc[-model_config["FORECAST_HORIZON"]+4:, :]
+        y_val = stock_df_feat[model_config["TARGET_NAME"]].iloc[-model_config["FORECAST_HORIZON"]+4:]
 
-    # train the model
-    xgboost_model.fit(
-        X_train,
-        y_train,
-    )
+        # call the optimization function
+        xgboost_best_params = optimize_model_params(objective, xgboost_hyperparameter_config, X_train, y_train, X_test, y_test, X_val, y_val)
+        logger.debug("best params: ")
+        logger.debug(xgboost_best_params)
+        # now train the model with the best params just to save them
+        logger.debug("Training the model with the best params...")
+        xgboost_model = xgb.XGBRegressor(
+            **xgboost_best_params
+        )
 
-    # save it
-    logger.debug("Saving the model with Joblib in order to use the parameters later...")
+        # train the model
+        xgboost_model.fit(
+            X_train,
+            y_train,
+        )
 
-    dump(xgboost_model, f"./models/{STOCK_NAME}_params.joblib")
-    hyperopt_tune_pipeline()
+        # save it
+        logger.debug("Saving the model with Joblib in order to use the parameters later...")
+
+        dump(xgboost_model, f"./models/params/{stock_name}_params.joblib")
 
     logger.info("Cross Validation Pipeline was sucessful!")
 
