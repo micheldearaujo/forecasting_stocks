@@ -92,7 +92,7 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
     axs.set_xlabel("Date")
     axs.set_ylabel("R$")
 
-    plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now().date()}.png")
+    plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now().date()}_{stock_name}.png")
     #plt.show()
     return fig
 
