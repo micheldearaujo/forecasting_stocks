@@ -81,5 +81,5 @@ if __name__ == "__main__":
 
     predict_pipeline()
 
-    logger.info("Inference Pipeline was sucessful!\n")
+    logger.info("\nInference Pipeline was sucessful!\n")
 
