@@ -1,0 +1,12 @@
+creation_timestamp: 1677326482988
+current_stage: Staging
+description: null
+last_updated_timestamp: 1677326483003
+name: Stock_Predictor_Validation
+run_id: a7eb0853c36c4db7880a944eda859a4c
+run_link: null
+source: file:///home/michel/Projects/mlops_practice/mlruns/0/a7eb0853c36c4db7880a944eda859a4c/artifacts/model_validation_BOVA11.SA
+status: READY
+status_message: null
+user_id: null
+version: 23

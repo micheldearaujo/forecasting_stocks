@@ -172,6 +172,10 @@ def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list:
     last_training_day = model_df.Date.max()
     date_list = [last_training_day + dt.timedelta(days=x+1) for x in range(forecast_horzion)]
     future_df = pd.DataFrame({"Date": date_list})
+    
+    # add stock column to iterate
+    future_df["Stock"] = model_df.Stock.unique()[0]
+
 
     # build the features for the future dataframe using the specified features
     inference_features_list = features_list[:-1]

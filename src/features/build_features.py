@@ -21,7 +21,10 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
     #stock_df_featurized = raw_df.copy()
     final_df_featurized = pd.DataFrame()
 
-    for stock_name in stocks_list:
+    print(raw_df.columns)
+
+    for stock_name in raw_df["Stock"].unique():
+        logger.debug("Building features for stock %s..."%stock_name)
         stock_df_featurized = raw_df[raw_df['Stock'] == stock_name].copy()
         
         for feature in features_list:
@@ -47,8 +50,6 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
         # Concatenate the new features to the final dataframe
         final_df_featurized = pd.concat([final_df_featurized, stock_df_featurized], axis=0)
 
-
-        
     try:
         logger.debug("Rounding the features to 2 decimal places...")
         # handle exception when building the future dataset
@@ -58,7 +59,6 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
     except KeyError:
         pass
     
-
     if save:
         print(final_df_featurized.tail(15))
         
@@ -66,9 +66,7 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
 
     logger.debug("Features built successfully!")
 
-    
-
-    return stock_df_featurized
+    return final_df_featurized
 
 
 

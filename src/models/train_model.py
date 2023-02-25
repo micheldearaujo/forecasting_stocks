@@ -4,13 +4,13 @@ sys.path.insert(0,'.')
 
 from src.utils import *
 
-def load_production_model_params(client: mlflow.tracking.client.MlflowClient) -> tuple:
+def load_production_model_params(client: mlflow.tracking.client.MlflowClient, stock_name: str) -> tuple:
 
     # create empty list to store model versions
     models_versions = []
 
     # search for model versions
-    for mv in client.search_model_versions("name='{}'".format(model_config['REGISTER_MODEL_NAME_VAL'])):
+    for mv in client.search_model_versions("name='{}_{}'".format(model_config['REGISTER_MODEL_NAME_VAL'], stock_name)):
         models_versions.append(dict(mv))
 
     # get the prod model
@@ -31,6 +31,7 @@ def load_production_model_params(client: mlflow.tracking.client.MlflowClient) ->
 def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, params: dict) -> xgb.sklearn.XGBRegressor:
     # use existing params
     xgboost_model = xgb.XGBRegressor(
+        eval_metric=["rmse", "logloss"],
         **params
     )
 
@@ -39,7 +40,6 @@ def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, params: dict
         X_train,
         y_train,
         eval_set=[(X_train, y_train)],
-        eval_metric=["rmse", "logloss"],
         verbose=0
     )
 
@@ -93,17 +93,18 @@ def train_pipeline():
     for stock_name in stock_df_feat_all["Stock"].unique():
 
         # filter and drop the columns
-        stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].copy()
+        stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].drop("Stock", axis=1).copy()
 
-        logger.debug(f"Creating training dataset for stock {stock_name}..")
+        #logger.debug(f"Creating training dataset for stock {stock_name}..")
+        logger.debug("Creating training dataset for stock %s..."%stock_name)
+        
         X_train=stock_df_feat.drop([model_config["TARGET_NAME"], "Date"], axis=1)
         y_train=stock_df_feat[model_config["TARGET_NAME"]]
 
         # load the production model parameters
         logger.debug("Loading the production model parameters..")
-        prod_validation_model_params, current_prod_model = load_production_model_params(client)
+        prod_validation_model_params, current_prod_model = load_production_model_params(client, stock_name)
 
-        
         with mlflow.start_run(run_name=f"model_inference_{stock_name}") as run:
 
             logger.debug("Training the model..")
@@ -132,44 +133,52 @@ def train_pipeline():
             logger.debug("Registering the model...")
             model_details = mlflow.register_model(
                 model_uri = f"runs:/{run.info.run_id}/{run.info.run_name}",
-                name = model_config[f'REGISTER_MODEL_NAME_INF_{stock_name}']
+                name = f"{model_config[f'REGISTER_MODEL_NAME_INF']}_{stock_name}"
             )
 
             logger.debug("Loading the current Inference Production model...")
+
             # Need to load the current prod inference model now, to archive it
             models_versions = []
 
-
-            # TODO: Continue back FROM HERE
-
-            
-            for mv in client.search_model_versions("name='{}'".format(model_config['REGISTER_MODEL_NAME_INF'])):
+            for mv in client.search_model_versions("name='{}_{}'".format(model_config[f'REGISTER_MODEL_NAME_INF'], stock_name)):
                 models_versions.append(dict(mv))
 
-            current_prod_inf_model = [x for x in models_versions if x['current_stage'] == 'Production'][0]
+            # Check if there is production model
+            try:
+                current_prod_inf_model = [x for x in models_versions if x['current_stage'] == 'Production'][0]
 
-            # Archive the previous version
-            client.transition_model_version_stage(
-                name=model_config['REGISTER_MODEL_NAME_INF'],
-                version=current_prod_inf_model['version'],
-                stage='Archived',
-            )
+                # Archive the previous version
+                client.transition_model_version_stage(
+                    name=f"{model_config['REGISTER_MODEL_NAME_INF']}_{stock_name}",
+                    version=current_prod_inf_model['version'],
+                    stage='Archived',
+                )
 
-            # transition the newest version
-            client.transition_model_version_stage(
-                name=model_config['REGISTER_MODEL_NAME_INF'],
-                version=model_details.version,
-                stage='Production',
-            )
+                # transition the newest version
+                client.transition_model_version_stage(
+                    name=f"{model_config['REGISTER_MODEL_NAME_INF']}_{stock_name}",
+                    version=model_details.version,
+                    stage='Production',
+                )
 
-            # give model version a description
-            client.update_model_version(
-                name=model_config["REGISTER_MODEL_NAME_INF"],
-                version=model_details.version,
-                description=f"""This is the inference model for stock {STOCK_NAME}, trained based on the Hyperparameters
-                from the validation model version {current_prod_model['version']} \
-                in Production."""
-        )
+                # give model version a description
+                client.update_model_version(
+                    name=f"{model_config['REGISTER_MODEL_NAME_INF']}_{stock_name}",
+                    version=model_details.version,
+                    description=f"""This is the inference model for stock {STOCK_NAME}, trained based on the Hyperparameters
+                    from the validation model version {current_prod_model['version']} \
+                    in Production."""
+                )
+
+            except IndexError:
+
+                # just set the new model as production
+                client.transition_model_version_stage(
+                    name=f"{model_config['REGISTER_MODEL_NAME_INF']}_{stock_name}",
+                    version=model_details.version,
+                    stage='Production',
+                )
 
 
 # Execute the whole pipeline

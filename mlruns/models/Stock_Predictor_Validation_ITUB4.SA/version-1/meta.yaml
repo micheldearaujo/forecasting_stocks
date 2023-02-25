@@ -1,0 +1,12 @@
+creation_timestamp: 1677328327946
+current_stage: Archived
+description: ''
+last_updated_timestamp: 1677332809726
+name: Stock_Predictor_Validation_ITUB4.SA
+run_id: 4f4ef55eb8a540269fffa469db9163c1
+run_link: ''
+source: file:///home/michel/Projects/mlops_practice/mlruns/0/4f4ef55eb8a540269fffa469db9163c1/artifacts/xgboost_model_ITUB4.SA
+status: READY
+status_message: null
+user_id: null
+version: 1

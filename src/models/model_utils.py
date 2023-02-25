@@ -171,7 +171,7 @@ def make_predict(model, forecast_horizon: int, future_df: pd.DataFrame) -> pd.Da
     return future_df_feat
 
 
-def time_series_grid_search_xgb(X, y, param_grid, stock_name, n_splits=5, random_state=0):
+def time_series_grid_search_xgb(X, y, param_grid: dict, stock_name, n_splits=5, random_state=0):
     """
     Performs time series hyperparameter tuning on an XGBoost model using grid search.
     
@@ -201,7 +201,7 @@ def time_series_grid_search_xgb(X, y, param_grid, stock_name, n_splits=5, random
     return best_model, best_params
 
 
-def predictions_sanity_check(client, run_info, y_train, pred_df, model_mape, stage_version):
+def predictions_sanity_check(client, run_info, y_train: pd.DataFrame, pred_df: pd.DataFrame, model_mape: float, stage_version: str, stock_name: str):
     """
     Check if the predictions are reliable.
     """
@@ -213,7 +213,7 @@ def predictions_sanity_check(client, run_info, y_train, pred_df, model_mape, sta
     logger.debug("Registering the model...")
     model_details = mlflow.register_model(
         model_uri = f"runs:/{newest_run_id}/{newest_run_name}",
-        name = model_config[f'REGISTER_MODEL_NAME_{stage_version}']
+        name = f"{model_config[f'REGISTER_MODEL_NAME_{stage_version}']}_{stock_name}"
     )
 
     # validate the predictions
@@ -224,7 +224,7 @@ def predictions_sanity_check(client, run_info, y_train, pred_df, model_mape, sta
 
         # if so, transit to staging
         client.transition_model_version_stage(
-            name=model_config[f'REGISTER_MODEL_NAME_{stage_version}'],
+            name=f"{model_config[f'REGISTER_MODEL_NAME_{stage_version}']}_{stock_name}",
             version=model_details.version,
             stage='Staging',
         )
@@ -236,7 +236,7 @@ def predictions_sanity_check(client, run_info, y_train, pred_df, model_mape, sta
     else:
         # if not, discard it
         client.delete_model_version(
-            name=model_config[f'REGISTER_MODEL_NAME_{stage_version}'],
+            name=f"{model_config[f'REGISTER_MODEL_NAME_{stage_version}']}_{stock_name}",
             version=model_details.version,
         )
         
@@ -244,12 +244,13 @@ def predictions_sanity_check(client, run_info, y_train, pred_df, model_mape, sta
         return False
 
 
-def compare_models(client, model_details, stage_version) -> None:
+def compare_models(client, model_details, stage_version: str, stock_name: str) -> None:
+
 
     # get the metrics of the Production model
     models_versions = []
-
-    for mv in client.search_model_versions("name='{}'".format(model_config[f'REGISTER_MODEL_NAME_{stage_version}'])):
+    #for mv in client.search_model_versions(f"name={model_config[f'REGISTER_MODEL_NAME_{stage_version}']}_{stock_name}"):
+    for mv in client.search_model_versions("name='{}_{}'".format(model_config[f'REGISTER_MODEL_NAME_{stage_version}'], stock_name)):
         models_versions.append(dict(mv))
 
     current_prod_model = [x for x in models_versions if x['current_stage'] == 'Production'][0]
@@ -270,14 +271,14 @@ def compare_models(client, model_details, stage_version) -> None:
         
         # archive the previous version
         client.transition_model_version_stage(
-            name=model_config[f'REGISTER_MODEL_NAME_{stage_version}'],
+            name=f"{model_config[f'REGISTER_MODEL_NAME_{stage_version}']}_{stock_name}",
             version=current_prod_model['version'],
             stage='Archived',
         )
 
         # transition the newest version
         client.transition_model_version_stage(
-            name=model_config[f'REGISTER_MODEL_NAME_{stage_version}'],
+            name=f"{model_config[f'REGISTER_MODEL_NAME_{stage_version}']}_{stock_name}",
             version=model_details.version,
             stage='Production',
         )
@@ -287,7 +288,7 @@ def compare_models(client, model_details, stage_version) -> None:
         print(f"Active model has a better {model_config['VALIDATION_METRIC']} than the candidate model.\nTransiting the new staging model to None.")
         
         client.transition_model_version_stage(
-            name=model_config[f'REGISTER_MODEL_NAME_{stage_version}'],
+            name=f"{model_config[f'REGISTER_MODEL_NAME_{stage_version}']}_{stock_name}",
             version=model_details.version,
             stage='None',
         )
@@ -297,7 +298,7 @@ def compare_models(client, model_details, stage_version) -> None:
     print('\n')
 
 
-def cd_pipeline(run_info, y_train, pred_df, model_mape):
+def cd_pipeline(run_info, y_train: pd.Series, pred_df: pd.DataFrame, model_mape: float, stock_name: str) -> None:
 
     logger.debug(" ----- Starting CD pipeline -----")
     
@@ -305,12 +306,12 @@ def cd_pipeline(run_info, y_train, pred_df, model_mape):
     client = MlflowClient()
 
     # validate the predictions
-    model_details = predictions_sanity_check(client, run_info, y_train, pred_df, model_mape, "VAL")
+    model_details = predictions_sanity_check(client, run_info, y_train, pred_df, model_mape, "VAL", stock_name)
 
     if model_details:
         # compare the new model with the production model
         logger.info("The model is reliable. Comparing it with the production model...")
-        compare_models(client, model_details, "VAL")
+        compare_models(client, model_details, "VAL", stock_name)
 
     else:
         logger.info("The model is not reliable. Discarding it.")

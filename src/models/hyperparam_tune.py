@@ -18,6 +18,8 @@ def objective(search_space: dict):
     # create model instance
     model = xgb.XGBRegressor(
         seed = xgboost_fixed_model_config['SEED'],
+        eval_metric = ['mae'],
+        early_stopping_rounds = 50,
         **search_space
     )
 
@@ -25,8 +27,6 @@ def objective(search_space: dict):
     model.fit(
         X_train,
         y_train,
-        early_stopping_rounds = 50,
-        eval_metric = ['mae'],
         eval_set=[(X_train, y_train), (X_test, y_test)],
         verbose=0,
     )
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     for stock_name in stock_df_feat_all.Stock.unique():
         
         # filter and drop the column
-        stock_df_feat = stock_df_feat_all[stock_df_feat_all.Stock == stock_name].drop("Stock", axis=1)
+        stock_df_feat = stock_df_feat_all[stock_df_feat_all.Stock == stock_name].drop("Stock", axis=1).copy()
 
         # perform cross-validation until the last forecast horizon
         cross_val_data = stock_df_feat[stock_df_feat.Date < stock_df_feat.Date.max() - dt.timedelta(days=model_config["FORECAST_HORIZON"])]
@@ -161,7 +161,7 @@ if __name__ == "__main__":
         # save it
         logger.debug("Saving the model with Joblib in order to use the parameters later...")
 
-        dump(xgboost_model, f"./models/{stock_name}_params.joblib")
+        dump(xgboost_model, f"./models/params/{stock_name}_params.joblib")
 
     logger.info("Cross Validation Pipeline was sucessful!")
 

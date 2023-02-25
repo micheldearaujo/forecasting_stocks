@@ -32,16 +32,17 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     y_train = y.iloc[:-forecast_horizon]
     
     # load the best model
-    xgboost_model = load(f"./models/{stock_name}_params.joblib")
+    xgboost_model = load(f"./models/params/{stock_name}_params.joblib")
     # get the best parameters
     parameters = xgboost_model.get_xgb_params()
     parameters.pop("eval_metric")
 
     # start the mlflow tracking
-    with mlflow.start_run(run_name="model_validation") as run:
+    with mlflow.start_run(run_name=f"model_validation_{stock_name}") as run:
 
         # fit the model again with the best parameters
         xgboost_model = xgb.XGBRegressor(
+            eval_metric=["rmse", "logloss"],
             **parameters
         )
 
@@ -50,7 +51,6 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
             X_train.drop("Date", axis=1),
             y_train,
             eval_set=[(X_train.drop("Date", axis=1), y_train)],
-            eval_metric=["rmse", "logloss"],
             verbose=0
         )
 
@@ -121,13 +121,13 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         # log the model to mlflow
         mlflow.xgboost.log_model(
             xgb_model=xgboost_model,
-            artifact_path="xgboost_model",
+            artifact_path=f"xgboost_model_{stock_name}",
             input_example=X_train.head(),
             signature=model_signature
         )
 
         # execute the CD pipeline
-        cd_pipeline(run.info, y_train, pred_df, model_mape)
+        cd_pipeline(run.info, y_train, pred_df, model_mape, stock_name)
 
     
     return pred_df
@@ -136,14 +136,22 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
 def model_validation_pipeline():
 
     logger.debug("Loading the featurized dataset..")
-    stock_df_feat = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
-    
-    predictions_df = validade_model_one_shot(
-        X=stock_df_feat.drop([model_config["TARGET_NAME"]], axis=1),
-        y=stock_df_feat[model_config["TARGET_NAME"]],
-        forecast_horizon=model_config['FORECAST_HORIZON'],
-        stock_name=STOCK_NAME
-    )
+    stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
+
+    # iterate over the stocks
+
+    for stock_name in stock_df_feat_all["Stock"].unique():
+        logger.info("Validating the model for the stock: %s"%stock_name)
+
+        # filter the stock and drop the stock column
+        stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].drop("Stock", axis=1)
+        
+        predictions_df = validade_model_one_shot(
+            X=stock_df_feat.drop([model_config["TARGET_NAME"]], axis=1),
+            y=stock_df_feat[model_config["TARGET_NAME"]],
+            forecast_horizon=model_config['FORECAST_HORIZON'],
+            stock_name=stock_name
+        )
 
 # Execute the whole pipeline
 

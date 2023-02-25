@@ -24,8 +24,13 @@ def front_end():
 
     # load the predictions dataset
     predictions_df = pd.read_csv(os.path.join(OUTPUT_DATA_PATH, 'output_stock_prices.csv'), parse_dates=["Date"])
+    # filter the predictions dataset to only the stock
+    predictions_df = predictions_df[predictions_df["Stock"] == STOCK_NAME]
     # load the historical dataset
     historical_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
+    # filter the historical dataset to only the stock
+    historical_df = historical_df[historical_df["Stock"] == STOCK_NAME]
+    
     # filter the last 10 days of the historical dataset and concat
     full_df = pd.concat([historical_df.tail(model_config["FORECAST_HORIZON"]), predictions_df], axis=0).reset_index().fillna(0)
     full_df["Class"] = full_df["Close"].apply(lambda x: "Historical" if x > 0 else "Forecast")

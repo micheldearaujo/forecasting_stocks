@@ -1,0 +1,12 @@
+creation_timestamp: 1677332809676
+current_stage: Production
+description: null
+last_updated_timestamp: 1677332809729
+name: Stock_Predictor_Validation_ITUB4.SA
+run_id: 5a5e35a6063b4bca9278f0c409df3a7b
+run_link: null
+source: file:///home/michel/Projects/mlops_practice/mlruns/0/5a5e35a6063b4bca9278f0c409df3a7b/artifacts/model_validation_ITUB4.SA
+status: READY
+status_message: null
+user_id: null
+version: 2
