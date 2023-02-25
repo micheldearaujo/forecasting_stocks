@@ -1,0 +1,15 @@
+artifact_uri: file:///home/michel/Projects/mlops_practice/mlruns/0/3ff2d64ef2164a46b84b5ec05ed4aca5/artifacts
+end_time: 1677327334974
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 3ff2d64ef2164a46b84b5ec05ed4aca5
+run_name: model_validation_BOVA11.SA
+run_uuid: 3ff2d64ef2164a46b84b5ec05ed4aca5
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1677327327944
+status: 4
+tags: []
+user_id: michel
