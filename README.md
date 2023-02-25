@@ -35,4 +35,3 @@ Para instalar o projeto localmente
   streamlit run src/models/app.py
 
 ```
-
