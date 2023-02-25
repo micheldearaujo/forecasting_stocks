@@ -29,7 +29,7 @@ def make_dataset(stock_name: str, period: str, interval: str) -> pd.DataFrame:
         stock_price_df['Date'] = stock_price_df['Date'].apply(lambda x: x.date())
         stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
 
-        empty_df = empty_df.append(stock_price_df)
+        empty_df = pd.concat([empty_df, stock_price_df], axis=0)
 
     empty_df.to_csv(os.path.join(RAW_DATA_PATH, 'raw_stock_prices.csv'), index=False)
 

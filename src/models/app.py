@@ -13,6 +13,7 @@ def front_end():
     Returns:
         None
     """
+    st.write("Welcome to the Stock Forecaster!!")
 
     #STOCK_NAME = 'BOVA11.SA'  #str(input("Which stock do you want to track? "))
     STOCK_NAME = st.selectbox(
@@ -32,10 +33,6 @@ def front_end():
     full_df = full_df[['Date', 'Class', 'Price']]
     print(full_df)
 
-    # # display the predictions on web
-    st.write(f"{model_config['FORECAST_HORIZON']-4} days Forecast for {STOCK_NAME}")
-    st.write(full_df)
-
     # make the figure using plotly
     fig = px.line(
         full_df,
@@ -51,6 +48,20 @@ def front_end():
         fig,
         use_container_width=True
     )
+
+
+    # create two columns
+    col1, col2 = st.columns([3, 2])
+    col1.subheader("Table of the historical + forecasted prices")
+    col1.write(f"{model_config['FORECAST_HORIZON']-4} days Forecast for {STOCK_NAME}")
+    col1.write(full_df)
+
+    # display the predictions on web
+    col2.subheader("Max and mins of the forecasted prices")
+    col2.write(f"Max: R$ {round(predictions_df['Forecast'].max(), 2)}")
+    col2.write(f"Min: R$ {round(predictions_df['Forecast'].min(), 2)}")
+
+
 
 # Execute the whole pipeline
 if __name__ == "__main__":
