@@ -1,0 +1,15 @@
+artifact_uri: file:///home/michel/Projects/mlops_practice/mlruns/0/e511264e8f3a4922a290a5a7f2c9f268/artifacts
+end_time: 1677332833285
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: e511264e8f3a4922a290a5a7f2c9f268
+run_name: model_inference_ITUB4.SA
+run_uuid: e511264e8f3a4922a290a5a7f2c9f268
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1677332831435
+status: 3
+tags: []
+user_id: michel

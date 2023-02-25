@@ -27,6 +27,8 @@ Para instalar o projeto localmente
 ```
 ## Usage/Examples
 
+![alt text](https://github.com/micheldearaujo/forecasting_stocks/tree/main/reports/usage.jpg)
+
 ```python
   python3 src/models/train_model.py
   python3 src/models/predict_model.py
