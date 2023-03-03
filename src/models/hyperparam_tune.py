@@ -57,7 +57,7 @@ def optimize_model_params(objective_function, search_space: dict, X_train, y_tra
         fn=objective,
         space=search_space,
         algo=algorithm,
-        max_evals=400,
+        max_evals=200,
         verbose=False,
         show_progressbar=True,
     )

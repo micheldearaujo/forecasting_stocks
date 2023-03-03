@@ -1,0 +1,15 @@
+artifact_uri: file:///home/michel/Projects/mlops_practice/mlruns/0/0d3ff44e579b41aebfd3eafc269dae0c/artifacts
+end_time: 1677793161333
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 0d3ff44e579b41aebfd3eafc269dae0c
+run_name: model_inference_BOVA11.SA
+run_uuid: 0d3ff44e579b41aebfd3eafc269dae0c
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1677793155891
+status: 3
+tags: []
+user_id: miche
