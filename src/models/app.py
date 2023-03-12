@@ -18,7 +18,7 @@ def front_end():
     Please keep in mind that this is just a educational tool and you should not perform financial operations based on that.
     """)
 
-    st.sidebar.write("""#### Choose your filters""")
+    st.sidebar.write("""### Choose your filters""")
 
     STOCK_NAME = st.sidebar.selectbox(
         "Which stock do you want to track?",
@@ -45,6 +45,16 @@ def front_end():
         label_visibility="visible",
         horizontal=True,
     )
+
+    st.sidebar.write("""### Nerdzone""")
+    st.sidebar.write("Here we have some technical details about the model and the data.")
+
+    st.sidebar.write("#### Model")
+    st.sidebar.write("Model hyperparameters: Work in Progress...")
+    
+    st.sidebar.write("#### Data")
+    st.sidebar.write("Data source: Yahoo Finance")
+    st.sidebar.write("Data processing: Work in Progress...")
     # load the predictions dataset
     predictions_df = pd.read_csv(os.path.join(OUTPUT_DATA_PATH, 'output_stock_prices.csv'), parse_dates=["Date"])
     # filter the predictions dataset to only the stock

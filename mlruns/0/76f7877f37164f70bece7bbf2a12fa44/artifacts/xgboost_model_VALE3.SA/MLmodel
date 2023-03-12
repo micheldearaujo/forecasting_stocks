@@ -1,0 +1,28 @@
+artifact_path: xgboost_model_VALE3.SA
+flavors:
+  python_function:
+    data: model.None
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.xgboost
+    python_version: 3.8.13
+  xgboost:
+    code: null
+    data: model.None
+    model_class: xgboost.sklearn.XGBRegressor
+    model_format: null
+    xgb_version: 1.7.3
+mlflow_version: 2.1.1
+model_uuid: f3c7b2332c064d6ba458e4248e5c3e18
+run_id: 76f7877f37164f70bece7bbf2a12fa44
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  type: dataframe
+signature:
+  inputs: '[{"name": "day_of_month", "type": "double"}, {"name": "month", "type":
+    "double"}, {"name": "quarter", "type": "double"}, {"name": "Close_lag_1", "type":
+    "double"}]'
+  outputs: '[{"name": "Close", "type": "double"}]'
+utc_time_created: '2023-03-12 19:10:44.335731'

@@ -29,6 +29,7 @@ def load_production_model_params(client: mlflow.tracking.client.MlflowClient, st
         
 
 def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, params: dict) -> xgb.sklearn.XGBRegressor:
+    
     # use existing params
     xgboost_model = xgb.XGBRegressor(
         eval_metric=["rmse", "logloss"],
