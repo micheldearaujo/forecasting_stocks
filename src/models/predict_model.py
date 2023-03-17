@@ -41,10 +41,10 @@ def predict_pipeline():
             models_versions.append(dict(mv))
 
         # load the production model
-        current_prod_model_info = [x for x in models_versions if x['current_stage'] == 'Production'][0]
-        current_prod_model_uri = f"./mlruns/0/{current_prod_model_info['run_id']}/artifacts/{model_config['MODEL_NAME']}_{stock_name}"
-        xgboost_model = mlflow.xgboost.load_model(model_uri=current_prod_model_uri)
-        
+        #current_prod_model_info = [x for x in models_versions if x['current_stage'] == 'Production'][0]
+        #current_prod_model_uri = f"./mlruns/0/{current_prod_model_info['run_id']}/artifacts/{model_config['MODEL_NAME']}_{stock_name}"
+        #xgboost_model = mlflow.xgboost.load_model(model_uri=current_prod_model_uri)
+        xgboost_model = load(f"./models/{stock_name}_{dt.datetime.today().date()}.joblib")
         logger.debug("Creating the future dataframe...")
         # Create the future dataframe using the make_future_df function
         future_df = make_future_df(model_config["FORECAST_HORIZON"], stock_df_feat, features_list)

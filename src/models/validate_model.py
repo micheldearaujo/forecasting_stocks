@@ -43,7 +43,7 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         # fit the model again with the best parameters
         xgboost_model = xgb.XGBRegressor(
             eval_metric=["rmse", "logloss"],
-            **parameters
+            #**parameters
         )
 
         # train the model

@@ -1,0 +1,15 @@
+artifact_uri: file:///home/michel/Projects/mlops_practice/mlruns/0/d5079fc08b784c989a738757f50db75e/artifacts
+end_time: 1679014108297
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: d5079fc08b784c989a738757f50db75e
+run_name: model_inference_NFLX
+run_uuid: d5079fc08b784c989a738757f50db75e
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1679014106666
+status: 3
+tags: []
+user_id: michel

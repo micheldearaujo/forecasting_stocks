@@ -28,12 +28,12 @@ def load_production_model_params(client: mlflow.tracking.client.MlflowClient, st
     return prod_validation_model_params_new, current_prod_model
         
 
-def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, params: dict) -> xgb.sklearn.XGBRegressor:
+def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, params: dict, stock_name: str) -> xgb.sklearn.XGBRegressor:
     
     # use existing params
     xgboost_model = xgb.XGBRegressor(
         eval_metric=["rmse", "logloss"],
-        **params
+        #**params
     )
 
     # train the model
@@ -43,6 +43,9 @@ def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, params: dict
         eval_set=[(X_train, y_train)],
         verbose=0
     )
+
+    # save as joblib
+    dump(xgboost_model, f"./models/{stock_name}_{dt.datetime.today().date()}.joblib")
 
     return xgboost_model
 
@@ -109,7 +112,7 @@ def train_pipeline():
         with mlflow.start_run(run_name=f"model_inference_{stock_name}") as run:
 
             logger.debug("Training the model..")
-            xgboost_model = train_inference_model(X_train, y_train, prod_validation_model_params)
+            xgboost_model = train_inference_model(X_train, y_train, prod_validation_model_params, stock_name)
 
             logger.debug("Plotting the learning curves..")
             fig = extract_learning_curves(xgboost_model)
