@@ -30,21 +30,11 @@ def front_end():
         dt.datetime.today().date() - dt.timedelta(days=2*model_config["FORECAST_HORIZON"])
     )
 
-    historical_color = st.sidebar.radio(
-        "Select historical line color 👇",
-        ["blue", "red", "black", "orange", "green"],
-        key="his_color",
-        label_visibility="visible",
-        horizontal=True,
-    )
+    
+    # Definir as opções de cores para Forecasting e Historical
+    historical_color = st.sidebar.color_picker('Escolha uma cor para Forecasting', '#FF5733')
+    forecast_color = st.sidebar.color_picker('Escolha uma cor para Historical', '#5D6D7E')
 
-    forecast_color = st.sidebar.radio(
-        "Select Forecast line color 👇",
-        ["blue", "red", "black", "orange", "green"],
-        key="for_color",
-        label_visibility="visible",
-        horizontal=True,
-    )
 
     st.sidebar.write("""### Nerdzone""")
     st.sidebar.write("Here we have some technical details about the model and the data.")
@@ -79,7 +69,8 @@ def front_end():
         y="Price",
         color="Class",
         symbol="Class",
-        title=f"{model_config['FORECAST_HORIZON']-4} days Forecast for {STOCK_NAME}"
+        title=f"{model_config['FORECAST_HORIZON']-4} days Forecast for {STOCK_NAME}",
+        color_discrete_map={'Forecast': forecast_color, 'Historical': historical_color}
     )
 
     # # plot it
@@ -97,6 +88,11 @@ def front_end():
                 delta=f"{100*round((predictions_df['Forecast'].max() - predictions_df['Forecast'].min())/predictions_df['Forecast'].min(), 4)}%")
 
 
+
+    # Opção para enviar feedback
+    feedback = st.text_input("Envie seu feedback:")
+    if feedback:
+        st.write("Obrigado pelo seu feedback:", feedback[::-1])
 
 # Execute the whole pipeline
 if __name__ == "__main__":
