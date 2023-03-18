@@ -89,16 +89,23 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
             actuals.append(y_test.values[0])
             dates.append(X_test["Date"].max())
 
-        # Calculate the resulting metric
-        model_mape = round(mean_absolute_percentage_error(actuals, predictions), 4)
-        model_rmse = round(np.sqrt(mean_squared_error(actuals, predictions)), 2)
-
         pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["Date", 'Actual', 'Forecast'])
         pred_df["Forecast"] = pred_df["Forecast"].astype("float64")
 
+        # Calculate the resulting metric
+        model_mape = round(mean_absolute_percentage_error(actuals, predictions), 4)
+        model_rmse = round(np.sqrt(mean_squared_error(actuals, predictions)), 2)
+        model_mae = round(mean_absolute_error(actuals, predictions), 2)
+        model_wape = round((pred_df.Actual - pred_df.Forecast).abs().sum() / pred_df.Actual.sum(), 2)
+
+        pred_df["MAPE"] = model_mape
+        pred_df["MAE"] = model_mae
+        pred_df["WAPE"] = model_wape
+        pred_df["RMSE"] = model_rmse
+
         # Plotting the Validation Results
-        fig = visualize_validation_results(pred_df, model_mape, model_rmse, stock_name)
-      
+        fig = visualize_validation_results(pred_df, model_mape, model_mae, model_wape, stock_name)
+
         # Plotting the Learning Results
         fig2 = extract_learning_curves(xgboost_model)
 
@@ -139,12 +146,13 @@ def model_validation_pipeline():
     stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
 
     # iterate over the stocks
+    validation_report_df = pd.DataFrame()
 
     for stock_name in stock_df_feat_all["Stock"].unique():
         logger.info("Validating the model for the stock: %s"%stock_name)
 
         # filter the stock and drop the stock column
-        stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].drop("Stock", axis=1)
+        stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].copy().drop("Stock", axis=1)
         
         predictions_df = validade_model_one_shot(
             X=stock_df_feat.drop([model_config["TARGET_NAME"]], axis=1),
@@ -152,6 +160,15 @@ def model_validation_pipeline():
             forecast_horizon=model_config['FORECAST_HORIZON'],
             stock_name=stock_name
         )
+
+        predictions_df["Stock"] = stock_name
+        predictions_df["Training_Date"] = dt.datetime.today().date()
+
+
+        validation_report_df = pd.concat([validation_report_df, predictions_df], axis=0)
+    
+    # export the validation dataframe
+    validation_report_df.to_csv(os.path.join(OUTPUT_DATA_PATH, 'validation_stock_prices.csv'), index=False)
 
 # Execute the whole pipeline
 

@@ -13,6 +13,10 @@ def front_end():
     Returns:
         None
     """
+    # data loading
+    validation_report_df = pd.read_csv(os.path.join(OUTPUT_DATA_PATH, 'validation_stock_prices.csv'))
+
+
     st.write("""# Welcome to the Stock Forecaster!
     Here you can have a glance of how the future of your stocks can look like and *simulute* decisions based on that.
     Please keep in mind that this is just a educational tool and you should not perform financial operations based on that.
@@ -25,12 +29,12 @@ def front_end():
         ("BOVA11.SA", "ITUB4.SA", "VALE3.SA", "NFLX")
     )
 
+    # get the historical starting date
     hist_start_date = st.sidebar.date_input(
         "From when do you want to the the historical prices?",
         dt.datetime.today().date() - dt.timedelta(days=2*model_config["FORECAST_HORIZON"])
     )
 
-    
     # Definir as opções de cores para Forecasting e Historical
     historical_color = st.sidebar.color_picker('Escolha uma cor para Forecasting', '#FF5733')
     forecast_color = st.sidebar.color_picker('Escolha uma cor para Historical', '#5D6D7E')
@@ -62,6 +66,8 @@ def front_end():
     full_df = full_df[['Date', 'Class', 'Price']]
     print(full_df)
 
+    print(validation_report_df)
+
     # make the figure using plotly
     fig = px.line(
         full_df,
@@ -78,7 +84,6 @@ def front_end():
         fig,
         use_container_width=True
     )
-
 
     # display the predictions on web
     col1, col2, col3 = st.columns(3)
