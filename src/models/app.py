@@ -41,9 +41,9 @@ def front_end():
     )
 
     # Definir as opções de cores para Forecasting e Historical
-    historical_color = st.sidebar.color_picker('Pick a color for the Forecasting', '#FF5733')
-    forecast_color = st.sidebar.color_picker('Pick a color for the Historical', '#5D6D7E')
-    validation_color = st.sidebar.color_picker('Pick a color for the Validation', '#5D1D1E')
+    forecast_color = st.sidebar.color_picker('Pick a color for the Forecasting', '#1DF7F2')
+    historical_color = st.sidebar.color_picker('Pick a color for the Historical', '#ED33FF')
+    validation_color = st.sidebar.color_picker('Pick a color for the Validation', '#FD8788')
 
 
     st.sidebar.write("""### Nerdzone""")
@@ -91,7 +91,7 @@ def front_end():
         color="Class",
         symbol="Class",
         title=f"{model_config['FORECAST_HORIZON']-4} days Forecast for {STOCK_NAME}",
-        color_discrete_map={'Forecast': forecast_color, 'Historical': historical_color}
+        color_discrete_map={'Forecast': forecast_color, 'Historical': historical_color, 'Validation': validation_color}
     )
 
     # # plot it
