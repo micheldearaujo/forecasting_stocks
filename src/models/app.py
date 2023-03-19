@@ -2,6 +2,7 @@ import sys
 sys.path.insert(0,'.')
 
 from src.utils import *
+from csv import writer
 
 
 def front_end():
@@ -15,6 +16,10 @@ def front_end():
     """
     # data loading
     validation_report_df = pd.read_csv(os.path.join(OUTPUT_DATA_PATH, 'validation_stock_prices.csv'))
+    # load the predictions dataset
+    predictions_df = pd.read_csv(os.path.join(OUTPUT_DATA_PATH, 'output_stock_prices.csv'), parse_dates=["Date"])
+    # load the historical dataset
+    historical_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
 
 
     st.write("""# Welcome to the Stock Forecaster!
@@ -36,25 +41,34 @@ def front_end():
     )
 
     # Definir as opções de cores para Forecasting e Historical
-    historical_color = st.sidebar.color_picker('Escolha uma cor para Forecasting', '#FF5733')
-    forecast_color = st.sidebar.color_picker('Escolha uma cor para Historical', '#5D6D7E')
+    historical_color = st.sidebar.color_picker('Pick a color for the Forecasting', '#FF5733')
+    forecast_color = st.sidebar.color_picker('Pick a color for the Historical', '#5D6D7E')
+    validation_color = st.sidebar.color_picker('Pick a color for the Validation', '#5D1D1E')
 
 
     st.sidebar.write("""### Nerdzone""")
     st.sidebar.write("Here we have some technical details about the model and the data.")
 
     st.sidebar.write("#### Model")
-    st.sidebar.write("Model hyperparameters: Work in Progress...")
-    
+    st.sidebar.write("Model name: ", validation_report_df["Model"].values[0])
+    st.sidebar.write("Model training date: ", validation_report_df["Training_Date"].values[0])
+    st.sidebar.write("Model inference date: ", validation_report_df["Training_Date"].values[0])
+
+    st.sidebar.write("#### Validation Metrics")
+    st.sidebar.write("Validation MAPE", validation_report_df["MAPE"].values[0])
+    st.sidebar.write("Validation WAPE", validation_report_df["WAPE"].values[0])
+    st.sidebar.write("Validation MAE", validation_report_df["MAE"].values[0])
+    st.sidebar.write("Validation RMSE", validation_report_df["RMSE"].values[0])
+
     st.sidebar.write("#### Data")
     st.sidebar.write("Data source: Yahoo Finance")
-    st.sidebar.write("Data processing: Work in Progress...")
-    # load the predictions dataset
-    predictions_df = pd.read_csv(os.path.join(OUTPUT_DATA_PATH, 'output_stock_prices.csv'), parse_dates=["Date"])
+ 
+    
     # filter the predictions dataset to only the stock
     predictions_df = predictions_df[predictions_df["Stock"] == STOCK_NAME]
-    # load the historical dataset
-    historical_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
+    # filter the validation dataset to only the stock
+    validation_report_df = validation_report_df[validation_report_df["Stock"] == STOCK_NAME]
+
     # filter the historical dataset to only the stock
     historical_df = historical_df[historical_df["Stock"] == STOCK_NAME]
     # filter the last 10 days of the historical dataset and concat
@@ -65,6 +79,7 @@ def front_end():
     full_df["Price"] = full_df["Close"] + full_df["Forecast"]
     full_df = full_df[['Date', 'Class', 'Price']]
     print(full_df)
+    full_df = pd.concat([full_df, validation_report_df[["Date", "Price", "Class"]]], axis=0)
 
     print(validation_report_df)
 
@@ -98,6 +113,10 @@ def front_end():
     feedback = st.text_input("Envie seu feedback:")
     if feedback:
         st.write("Obrigado pelo seu feedback:", feedback[::-1])
+        
+        with open(os.path.join(OUTPUT_DATA_PATH, 'feedbacks.csv'), 'a') as file:
+            csv_writer = writer(file)
+            csv_writer.writerow([dt.datetime.today(), feedback])
 
 # Execute the whole pipeline
 if __name__ == "__main__":

@@ -1,0 +1,15 @@
+artifact_uri: file:///home/michel/projects/forecasting_stocks/mlruns/695698712337520967/8d2c3cfed72047bb9933ee23aa1d568f/artifacts
+end_time: 1679238009405
+entry_point_name: ''
+experiment_id: '695698712337520967'
+lifecycle_stage: active
+run_id: 8d2c3cfed72047bb9933ee23aa1d568f
+run_name: model_inference_VALE3.SA
+run_uuid: 8d2c3cfed72047bb9933ee23aa1d568f
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1679238007134
+status: 3
+tags: []
+user_id: michel

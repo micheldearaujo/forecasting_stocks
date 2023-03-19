@@ -108,7 +108,7 @@ def train_pipeline():
         # load the production model parameters
         logger.debug("Loading the production model parameters..")
         prod_validation_model_params, current_prod_model = load_production_model_params(client, stock_name)
-
+        mlflow.set_experiment(experiment_name="Training_Inference_Models")
         with mlflow.start_run(run_name=f"model_inference_{stock_name}") as run:
 
             logger.debug("Training the model..")

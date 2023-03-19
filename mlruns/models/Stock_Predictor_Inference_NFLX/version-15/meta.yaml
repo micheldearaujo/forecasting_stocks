@@ -1,9 +1,9 @@
 creation_timestamp: 1679060671081
-current_stage: Production
+current_stage: Archived
 description: "This is the inference model for stock BOVA11.SA, trained based on the
   Hyperparameters\n                    from the validation model version 1                     in
   Production."
-last_updated_timestamp: 1679060671131
+last_updated_timestamp: 1679235371077
 name: Stock_Predictor_Inference_NFLX
 run_id: 4399725c2f784d4fa18c450d83efc414
 run_link: null

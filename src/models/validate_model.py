@@ -102,6 +102,7 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         pred_df["MAE"] = model_mae
         pred_df["WAPE"] = model_wape
         pred_df["RMSE"] = model_rmse
+        pred_df["Model"] = str(type(xgboost_model)).split('.')[-1][:-2]
 
         # Plotting the Validation Results
         fig = visualize_validation_results(pred_df, model_mape, model_mae, model_wape, stock_name)
@@ -117,6 +118,8 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         # log the metrics
         mlflow.log_metric("MAPE", model_mape)
         mlflow.log_metric("RMSE", model_rmse)
+        mlflow.log_metric("MAE", model_mae)
+        mlflow.log_metric("WAPE", model_wape)
 
         # log the figure
         mlflow.log_figure(fig, "validation_results.png")
@@ -168,6 +171,8 @@ def model_validation_pipeline():
         validation_report_df = pd.concat([validation_report_df, predictions_df], axis=0)
     
     # export the validation dataframe
+    validation_report_df = validation_report_df.rename(columns={"Forecast": "Price"})
+    validation_report_df["Class"] = "Validation"
     validation_report_df.to_csv(os.path.join(OUTPUT_DATA_PATH, 'validation_stock_prices.csv'), index=False)
 
 # Execute the whole pipeline

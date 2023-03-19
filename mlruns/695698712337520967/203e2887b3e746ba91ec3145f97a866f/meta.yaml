@@ -1,0 +1,15 @@
+artifact_uri: file:///home/michel/projects/forecasting_stocks/mlruns/695698712337520967/203e2887b3e746ba91ec3145f97a866f/artifacts
+end_time: 1679237972621
+entry_point_name: ''
+experiment_id: '695698712337520967'
+lifecycle_stage: active
+run_id: 203e2887b3e746ba91ec3145f97a866f
+run_name: model_inference_BOVA11.SA
+run_uuid: 203e2887b3e746ba91ec3145f97a866f
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1679237970114
+status: 3
+tags: []
+user_id: michel
