@@ -409,8 +409,8 @@ def test_train_inference_model():
     # check that the model has been fit to the training data
     assert xgboost_model.n_features_in_ == 2
     assert xgboost_model.n_estimators == 100
-    assert xgboost_model.max_depth == 3
-    assert xgboost_model.learning_rate == 0.1
+    assert xgboost_model.max_depth == 6
+    assert xgboost_model.learning_rate == 0.3
     assert len(xgboost_model.evals_result()['validation_0']['rmse']) == 100
     assert len(xgboost_model.evals_result()['validation_0']['logloss']) == 100
 
