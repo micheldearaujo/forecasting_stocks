@@ -17,12 +17,6 @@ def load_production_model_params(client: mlflow.tracking.client.MlflowClient, st
     current_prod_model = [x for x in models_versions if x['current_stage'] == 'Production'][0]
     prod_validation_model_params = mlflow.get_run(current_prod_model['run_id']).data.params
 
-    # remove unsignificant params
-    # prod_validation_model_params_new = {}
-    # for key, value in prod_validation_model_params.items():
-    #     if key in xgboost_hyperparameter_config.keys():
-    #         prod_validation_model_params_new[key] = value
-
     prod_validation_model_params_new = {k: v for k, v in prod_validation_model_params.items() if k in xgboost_hyperparameter_config.keys()}
 
     return prod_validation_model_params_new, current_prod_model

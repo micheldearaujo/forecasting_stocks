@@ -1,0 +1,15 @@
+artifact_uri: file:///home/michel/Projects/mlops_practice/mlruns/0/245bf669871b40da9b017fe26ad9fdaf/artifacts
+end_time: 1682794204505
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 245bf669871b40da9b017fe26ad9fdaf
+run_name: model_validation_VALE3.SA
+run_uuid: 245bf669871b40da9b017fe26ad9fdaf
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1682794202055
+status: 3
+tags: []
+user_id: michel
