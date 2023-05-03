@@ -3,6 +3,7 @@ sys.path.insert(0,'.')
 
 from src.utils import *
 from csv import writer
+from algo_trading import ma_1, ma_2, Trader
 
 
 def front_end():
@@ -71,17 +72,27 @@ def front_end():
 
     # filter the historical dataset to only the stock
     historical_df = historical_df[historical_df["Stock"] == STOCK_NAME]
-    # filter the last 10 days of the historical dataset and concat
-    historical_df = historical_df[historical_df["Date"] >= pd.to_datetime(hist_start_date)]
-
+    
     full_df = pd.concat([historical_df, predictions_df], axis=0).reset_index().fillna(0)
     full_df["Class"] = full_df["Close"].apply(lambda x: "Historical" if x > 0 else "Forecast")
     full_df["Price"] = full_df["Close"] + full_df["Forecast"]
     full_df = full_df[['Date', 'Class', 'Price']]
-    print(full_df)
-    full_df = pd.concat([full_df, validation_report_df[["Date", "Price", "Class"]]], axis=0)
 
-    print(validation_report_df)
+
+    # Performs algorithmic trading
+    trader = Trader(STOCK_NAME)
+    stock_df_traded = trader.execute_trading(ma_1, ma_2, False)
+    print(stock_df_traded)
+    results = trader.evaluate_model(False)
+
+
+    full_df = pd.concat([full_df, validation_report_df[["Date", "Price", "Class"]]], axis=0)
+    full_df["Date"] = pd.to_datetime(full_df["Date"])
+    print(full_df.head())
+    print(full_df.info())
+
+    # filter timeframe to display
+    full_df = full_df[full_df["Date"] >= pd.to_datetime(hist_start_date)]
 
     # make the figure using plotly
     fig = px.line(
