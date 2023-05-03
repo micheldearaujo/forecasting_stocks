@@ -27,8 +27,8 @@ plt.style.use('dark_background')
 
 
 # -------------- Defining the parameters -------------------
-ma_1 = 7
-ma_2 = 15
+#ma_1 = 3
+#ma_2 = 15
 
 # Let's define the time frame. How much time we are going to look back into the past
 years = 3   # How many years
@@ -40,25 +40,27 @@ company = 'BOVA11.SA'
 
 class Trader:
 
-    buy_signals = []  # Making a list of the buying signals
-    sell_signals = []
+    #buy_signals = []
+    #sell_signals = []
     trigger = 0  # This trigger is used to verify the current state of the algorithm
 
-    def __init__(self, company_name):
+    def __init__(self, company_name, data, buy_signals, sell_signals):
         self.company_name = company_name
+        self.data = data
+        self.sell_signals = sell_signals
+        self.buy_signals = buy_signals
 
-    def load_dataset(self):
-        self.data = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
+
+    def preprocess_dataset(self, ma_1, ma_2):
 
         # Calculate the moving averages
-        self.data = self.data[self.data["Stock"] == self.company_name]
-        self.data[f'SMA_{ma_1}'] = self.data['Close'].rolling(window=ma_1).mean()
-        self.data[f'SMA_{ma_2}'] = self.data['Close'].rolling(window=ma_2).mean()
+        self.data[f'SMA_{ma_1}'] = self.data["Price"].rolling(window=ma_1).mean()
+        self.data[f'SMA_{ma_2}'] = self.data["Price"].rolling(window=ma_2).mean()
 
         return self.data
 
     def plot_initial(self):
-        plt.plot(self.data['Close'], label='Share Price', color='lightgray')
+        plt.plot(self.data["Price"], label='Share Price', color='lightgray')
         plt.plot(self.data[f'SMA_{ma_1}'], label=f'SMA_{ma_1}', color='orange')
         plt.plot(self.data[f'SMA_{ma_2}'], label=f'SMA_{ma_2}', color='purple')
         plt.title(f'Trading Strategy for {self.company_name} Stocks')
@@ -78,7 +80,7 @@ class Trader:
             # If the minor moving average cross up the bigger moving average we will buy the stock
             # Because hypothetically it means that the stock price will increase after that
             if self.data[f'SMA_{ma_1}'].iloc[x] > self.data[f'SMA_{ma_2}'].iloc[x] and self.trigger !=1:
-                self.buy_signals.append(self.data['Close'].iloc[x])
+                self.buy_signals.append(self.data["Price"].iloc[x])
                 self.sell_signals.append(float('nan'))
                 self.trigger = 1
 
@@ -90,7 +92,7 @@ class Trader:
             # We are only going to perform this action if the trigger is not equal to -1, the sell signal.
             elif self.data[f'SMA_{ma_1}'].iloc[x] < self.data[f'SMA_{ma_2}'].iloc[x] and self.trigger != -1:
                 self.buy_signals.append(float('nan'))
-                self.sell_signals.append(self.data['Close'].iloc[x])
+                self.sell_signals.append(self.data["Price"].iloc[x])
                 self.trigger = -1
 
             # If nothing happens, append a 'nan' to the row.
@@ -98,13 +100,14 @@ class Trader:
                 self.buy_signals.append(float('nan'))
                 self.sell_signals.append(float('nan'))
 
+        print(len(self.buy_signals))
         self.data['Buy Signals'] = self.buy_signals
         self.data['Sell Signals'] = self.sell_signals
         
         self.data.index = pd.to_datetime(self.data.Date)
         if display_results:
             fig, ax = plt.subplots(figsize=(12, 8))
-            ax.plot(self.data['Close'], label='Share Price', alpha=0.5)
+            ax.plot(self.data["Price"], label='Share Price', alpha=0.5)
             ax.plot(self.data[f'SMA_{ma_1}'], label=f'SMA_{ma_1}', color='orange', ls='--')
             ax.plot(self.data[f'SMA_{ma_2}'], label=f'SMA_{ma_2}', color='purple', ls ='--')
             ax.scatter(self.data.index, self.data['Buy Signals'], label='Buy Signals', marker='^', color='#00ff00', lw=3)
@@ -133,14 +136,14 @@ class Trader:
         # How much profit we would have if we sell that share right now, and the first price of the stocks is the base
         # to calculate de percentage of the profit over the initial value.
 
-        InitialPrice = self.data['Close'].iloc[0]
+        InitialPrice = self.data["Price"].iloc[0]
 
         # It its necessary to check the trigger. If the last action was a buying action, we need to set the final price
         # as the last price in the data.
         # But if the last action was a selling action, then we do not need to modify the sum.
 
         if self.trigger == 1:  # Bought
-            FinalPrice = self.data['Close'].iloc[len(self.data) -1]
+            FinalPrice = self.data["Price"].iloc[len(self.data) -1]
             TotalProfit = round(TotalSold - TotalBought + FinalPrice, 2)
             PercentageProfit = round(TotalProfit * 100, 1)
         else:   # Sold
@@ -156,7 +159,7 @@ class Trader:
 
         if display_results:
             fig, ax = plt.subplots(figsize=(12, 8))
-            ax.plot(self.data['Close'], label='Share Price', alpha=0.5)
+            ax.plot(self.data["Price"], label='Share Price', alpha=0.5)
             ax.plot(self.data[f'SMA_{ma_1}'], label=f'SMA_{ma_1}', color='orange', ls='--')
             ax.plot(self.data[f'SMA_{ma_2}'], label=f'SMA_{ma_2}', color='purple', ls ='--')
             ax.scatter(self.data.index, self.data['Buy Signals'], label='Buy Signals', marker='^', color='#00ff00', lw=3)
@@ -169,10 +172,3 @@ class Trader:
             plt.show()
 
         return company, TotalProfit, PercentageProfit
-
-
-
-
-#data = get_data(company, start, end)
-
-## OK, now we now how much profit we got!
