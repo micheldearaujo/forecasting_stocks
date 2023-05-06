@@ -6,6 +6,10 @@ from src.utils import *
 from src.models.train_model import extract_learning_curves
 from src.models.model_utils import cd_pipeline
 
+logger = logging.getLogger("Model_Testing")
+logger.setLevel(logging.INFO)
+
+
 
 def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, stock_name: str) -> pd.DataFrame:
     """

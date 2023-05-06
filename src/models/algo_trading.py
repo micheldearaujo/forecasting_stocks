@@ -24,6 +24,9 @@ import matplotlib.pyplot as plt
 import yfinance as yf               # Alternative
 
 plt.style.use('dark_background')
+logger = logging.getLogger("Algorithimic_Trading")
+logger.setLevel(logging.INFO)
+
 
 
 # -------------- Defining the parameters -------------------
@@ -100,7 +103,6 @@ class Trader:
                 self.buy_signals.append(float('nan'))
                 self.sell_signals.append(float('nan'))
 
-        print(len(self.buy_signals))
         self.data['Buy Signals'] = self.buy_signals
         self.data['Sell Signals'] = self.sell_signals
         

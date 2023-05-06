@@ -1,0 +1,15 @@
+artifact_uri: file:///home/michel/Projects/mlops_practice/mlruns/0/fb24c2ad59a9489d9a8951ba26ad73e7/artifacts
+end_time: 1683385731524
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: fb24c2ad59a9489d9a8951ba26ad73e7
+run_name: model_validation_NFLX
+run_uuid: fb24c2ad59a9489d9a8951ba26ad73e7
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1683385728765
+status: 3
+tags: []
+user_id: michel

@@ -1,0 +1,15 @@
+artifact_uri: file:///home/michel/projects/forecasting_stocks/mlruns/695698712337520967/3c89c59be1f24174bc5d4ebcc0ef0089/artifacts
+end_time: 1683385694462
+entry_point_name: ''
+experiment_id: '695698712337520967'
+lifecycle_stage: active
+run_id: 3c89c59be1f24174bc5d4ebcc0ef0089
+run_name: model_inference_NFLX
+run_uuid: 3c89c59be1f24174bc5d4ebcc0ef0089
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1683385688647
+status: 3
+tags: []
+user_id: michel
