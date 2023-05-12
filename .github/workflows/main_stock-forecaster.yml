@@ -7,7 +7,7 @@ name: Build and deploy Python app to Azure Web App - stock-forecaster
 on:
   push:
     branches:
-      - feat/test_azure_web_app
+      - main
   workflow_dispatch:
 
 jobs:
