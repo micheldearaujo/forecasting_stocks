@@ -1,6 +1,0 @@
-artifact_location: file:///home/michel/projects/forecasting_stocks/mlruns/695698712337520967
-creation_time: 1679237970101
-experiment_id: '695698712337520967'
-last_update_time: 1679237970101
-lifecycle_stage: active
-name: Training_Inference_Models
