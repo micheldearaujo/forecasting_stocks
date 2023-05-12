@@ -7,6 +7,9 @@ from src.models.model_utils import (
     make_predict
 )
 
+logger = logging.getLogger("Inference_Pipeline")
+logger.setLevel(logging.INFO)
+
 features_list = ["day_of_month", "month", "quarter", "Close_lag_1"]
 
 def predict_pipeline():

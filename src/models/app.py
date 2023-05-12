@@ -3,6 +3,8 @@ sys.path.insert(0,'.')
 
 from src.utils import *
 from csv import writer
+from algo_trading import Trader
+import plotly.graph_objects as go
 
 
 def front_end():
@@ -45,6 +47,20 @@ def front_end():
     historical_color = st.sidebar.color_picker('Pick a color for the Historical', '#ED33FF')
     validation_color = st.sidebar.color_picker('Pick a color for the Validation', '#FD8788')
 
+    ma_1 = st.sidebar.text_input("Digite a quantidade de dias da média móvel menor.", 3)
+    try:
+        ma_1 = int(ma_1)
+    except:
+        st.sidebar.error("O valor digital não é inteiro. Digite a quantidade de dias da média móvel menor.")
+
+    ma_2 = st.sidebar.text_input("Digite a quantidade de dias da média móvel maior.", 15)
+    try:
+        ma_2 = int(ma_2)
+    except:
+        st.sidebar.error("O valor digital não é inteiro. Digite a quantidade de dias da média móvel maior.")
+
+    while ma_2 < ma_1:
+        st.sidebar.error("A média movel maior deve ser maior que a média movel menor!")
 
     st.sidebar.write("""### Nerdzone""")
     st.sidebar.write("Here we have some technical details about the model and the data.")
@@ -71,17 +87,25 @@ def front_end():
 
     # filter the historical dataset to only the stock
     historical_df = historical_df[historical_df["Stock"] == STOCK_NAME]
-    # filter the last 10 days of the historical dataset and concat
-    historical_df = historical_df[historical_df["Date"] >= pd.to_datetime(hist_start_date)]
-
+    
     full_df = pd.concat([historical_df, predictions_df], axis=0).reset_index().fillna(0)
     full_df["Class"] = full_df["Close"].apply(lambda x: "Historical" if x > 0 else "Forecast")
     full_df["Price"] = full_df["Close"] + full_df["Forecast"]
     full_df = full_df[['Date', 'Class', 'Price']]
-    print(full_df)
-    full_df = pd.concat([full_df, validation_report_df[["Date", "Price", "Class"]]], axis=0)
 
-    print(validation_report_df)
+
+    # Performs algorithmic trading
+    trader = Trader(STOCK_NAME, full_df, [], [])
+    trader.preprocess_dataset(ma_1, ma_2)
+    stock_df_traded = trader.execute_trading(ma_1, ma_2, False)
+    #results = trader.evaluate_model(False)
+
+
+    full_df = pd.concat([full_df, validation_report_df[["Date", "Price", "Class"]]], axis=0)
+    full_df["Date"] = pd.to_datetime(full_df["Date"])
+
+    # filter timeframe to display
+    full_df = full_df[full_df["Date"] >= pd.to_datetime(hist_start_date)]
 
     # make the figure using plotly
     fig = px.line(
@@ -93,6 +117,8 @@ def front_end():
         title=f"{model_config['FORECAST_HORIZON']-4} days Forecast for {STOCK_NAME}",
         color_discrete_map={'Forecast': forecast_color, 'Historical': historical_color, 'Validation': validation_color}
     )
+
+    
 
     # # plot it
     st.plotly_chart(
@@ -107,6 +133,57 @@ def front_end():
     col3.metric(label="Amplitude", value=f"R$ {round(predictions_df['Forecast'].max() - predictions_df['Forecast'].min(), 2)}",
                 delta=f"{100*round((predictions_df['Forecast'].max() - predictions_df['Forecast'].min())/predictions_df['Forecast'].min(), 4)}%")
 
+
+    st.write("""## Let the algorithm trade for you!""")
+
+    # make the figure using plotly
+    fig = px.line(
+        full_df[full_df['Class'] != "Validation"],
+        x="Date",
+        y="Price",
+        color="Class",
+        symbol="Class",
+        title=f"Algorithmic Trading for {STOCK_NAME}",
+        color_discrete_map={'Forecast': forecast_color, 'Historical': historical_color, 'Validation': validation_color}
+    )
+
+    fig.add_trace(go.Scatter(
+        x=full_df["Date"],
+        y=full_df[f'SMA_{ma_1}'],
+        mode='lines',
+        name=f'SMA_{ma_1}'
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=full_df["Date"],
+        y=full_df[f'SMA_{ma_2}'],
+        mode='lines',
+        name=f'SMA_{ma_2}'
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=full_df["Date"],
+        y=full_df["Buy Signals"],
+        mode='markers',
+        name='Buy Signals',
+        marker=dict(size=15, color='gold',
+                    line=dict(color='DarkSlateGrey', width=2))
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=full_df["Date"],
+        y=full_df["Sell Signals"],
+        mode='markers',
+        name='Sell Signals',
+        marker=dict(size=15, color='firebrick',
+                    line=dict(color='DarkSlateGrey', width=2))
+    ))
+
+    # # plot it
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
 
 
     # Opção para enviar feedback

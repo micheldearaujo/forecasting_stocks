@@ -1,0 +1,14 @@
+creation_timestamp: 1683390444684
+current_stage: Production
+description: "This is the inference model for stock BOVA11.SA, trained based on the
+  Hyperparameters\n                    from the validation model version 4                     in
+  Production."
+last_updated_timestamp: 1683390444786
+name: Stock_Predictor_Inference_ITUB4.SA
+run_id: b849b4cf510b4919b57c9a8569da2711
+run_link: null
+source: file:///home/michel/projects/forecasting_stocks/mlruns/695698712337520967/b849b4cf510b4919b57c9a8569da2711/artifacts/model_inference_ITUB4.SA
+status: READY
+status_message: null
+user_id: null
+version: 23

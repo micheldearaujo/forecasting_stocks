@@ -4,6 +4,10 @@ sys.path.insert(0,'.')
 
 from src.utils import *
 
+logger = logging.getLogger("Model_Training")
+logger.setLevel(logging.INFO)
+
+
 def load_production_model_params(client: mlflow.tracking.client.MlflowClient, stock_name: str) -> tuple:
 
     # create empty list to store model versions

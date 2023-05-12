@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-# -*- coding: utf-8 -*-
 import sys
 sys.path.insert(0,'.')
 
 from src.utils import *
+
+logger = logging.getLogger("Feature_Engineering")
+logger.setLevel(logging.INFO)
 
 
 def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -> pd.DataFrame:
@@ -18,13 +20,11 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
     """
 
     logger.debug("Started building features...")
-    #stock_df_featurized = raw_df.copy()
     final_df_featurized = pd.DataFrame()
-
-    print(raw_df.columns)
 
     for stock_name in raw_df["Stock"].unique():
         logger.debug("Building features for stock %s..."%stock_name)
+
         stock_df_featurized = raw_df[raw_df['Stock'] == stock_name].copy()
         
         for feature in features_list:
@@ -45,7 +45,6 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
 
             # Drop nan values because of the shift
             stock_df_featurized = stock_df_featurized.dropna()
-            print(stock_df_featurized.tail(5))
 
         # Concatenate the new features to the final dataframe
         final_df_featurized = pd.concat([final_df_featurized, stock_df_featurized], axis=0)
@@ -57,10 +56,11 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
         final_df_featurized['Close_lag_1'] = final_df_featurized['Close_lag_1'].apply(lambda x: round(x, 2))
         
     except KeyError:
+        logger.warning("Key error when rouding numerical features.")
         pass
     
     if save:
-        print(final_df_featurized.tail(15))
+        print(final_df_featurized.head(15))
         
         final_df_featurized.to_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), index=False)
 

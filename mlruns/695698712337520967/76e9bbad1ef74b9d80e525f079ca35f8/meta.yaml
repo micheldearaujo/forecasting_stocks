@@ -1,0 +1,15 @@
+artifact_uri: file:///home/michel/projects/forecasting_stocks/mlruns/695698712337520967/76e9bbad1ef74b9d80e525f079ca35f8/artifacts
+end_time: 1683385682959
+entry_point_name: ''
+experiment_id: '695698712337520967'
+lifecycle_stage: active
+run_id: 76e9bbad1ef74b9d80e525f079ca35f8
+run_name: model_inference_ITUB4.SA
+run_uuid: 76e9bbad1ef74b9d80e525f079ca35f8
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1683385677954
+status: 3
+tags: []
+user_id: michel
