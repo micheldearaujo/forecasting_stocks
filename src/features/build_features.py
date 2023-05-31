@@ -52,15 +52,16 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
     try:
         logger.debug("Rounding the features to 2 decimal places...")
         # handle exception when building the future dataset
+        print(final_df_featurized.columns)
         final_df_featurized['Close'] = final_df_featurized['Close'].apply(lambda x: round(x, 2))
         final_df_featurized['Close_lag_1'] = final_df_featurized['Close_lag_1'].apply(lambda x: round(x, 2))
         
-    except KeyError:
+    except KeyError as error:
         logger.warning("Key error when rouding numerical features.")
-        pass
+        print(error)
+        
     
     if save:
-        print(final_df_featurized.head(15))
         
         final_df_featurized.to_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), index=False)
 

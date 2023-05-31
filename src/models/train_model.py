@@ -53,11 +53,11 @@ def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False
     Can display the figure or not.
 
     Args:
-        model (xgb.sklearn.XGBRegressor): Fit XGBoost model
+        model (xgb.sklearn.XGBRegressor): Fitted XGBoost model
         display (bool, optional): Display the figure. Defaults to False.
 
     Returns:
-        _type_: Matplotlib figure
+        matplotlib.figure.Figure: Learning curves figure
     """
 
     # extract the learning curves
@@ -85,16 +85,13 @@ def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False
 
 def train_pipeline():
 
-    # create the mlflow client
     client = MlflowClient()
     
     logger.debug("Loading the featurized dataset..")
     stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
 
-    # iterate over the stocks
     for stock_name in stock_df_feat_all["Stock"].unique():
 
-        # filter and drop the columns
         stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].drop("Stock", axis=1).copy()
 
         #logger.debug(f"Creating training dataset for stock {stock_name}..")
@@ -105,8 +102,12 @@ def train_pipeline():
 
         # load the production model parameters
         logger.debug("Loading the production model parameters..")
-        prod_validation_model_params, current_prod_model = load_production_model_params(client, stock_name)
+
+        #prod_validation_model_params, current_prod_model = load_production_model_params(client, stock_name)
+        prod_validation_model_params = {}
+
         mlflow.set_experiment(experiment_name="Training_Inference_Models")
+        
         with mlflow.start_run(run_name=f"model_inference_{stock_name}") as run:
 
             logger.debug("Training the model..")
@@ -165,13 +166,13 @@ def train_pipeline():
                 )
 
                 # give model version a description
-                client.update_model_version(
-                    name=f"{model_config['REGISTER_MODEL_NAME_INF']}_{stock_name}",
-                    version=model_details.version,
-                    description=f"""This is the inference model for stock {STOCK_NAME}, trained based on the Hyperparameters
-                    from the validation model version {current_prod_model['version']} \
-                    in Production."""
-                )
+                # client.update_model_version(
+                #     name=f"{model_config['REGISTER_MODEL_NAME_INF']}_{stock_name}",
+                #     version=model_details.version,
+                #     description=f"""This is the inference model for stock {STOCK_NAME}, trained based on the Hyperparameters
+                #     from the validation model version {current_prod_model['version']} \
+                #     in Production."""
+                # )
 
             except IndexError:
 

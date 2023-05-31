@@ -141,7 +141,7 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         )
 
         # execute the CD pipeline
-        cd_pipeline(run.info, y_train, pred_df, model_mape, stock_name)
+        #cd_pipeline(run.info, y_train, pred_df, model_mape, stock_name)
 
     
     return pred_df

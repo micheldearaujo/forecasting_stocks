@@ -21,7 +21,7 @@ def predict_pipeline():
     Returns:
         None
     """
-    # create Mlflow Client
+
     client = MlflowClient()
 
     logger.debug("Loading the featurized dataset..")
@@ -31,7 +31,6 @@ def predict_pipeline():
     # create empty dataset to store all the predictions
     final_predictions_df = pd.DataFrame()
 
-    # filter the dataset to only the stock we want to predict
     for stock_name in stock_df_feat_all["Stock"].unique():
 
         stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].copy()
@@ -47,6 +46,7 @@ def predict_pipeline():
         #current_prod_model_info = [x for x in models_versions if x['current_stage'] == 'Production'][0]
         #current_prod_model_uri = f"./mlruns/0/{current_prod_model_info['run_id']}/artifacts/{model_config['MODEL_NAME']}_{stock_name}"
         #xgboost_model = mlflow.xgboost.load_model(model_uri=current_prod_model_uri)
+        
         xgboost_model = load(f"./models/{stock_name}_{dt.datetime.today().date()}.joblib")
         logger.debug("Creating the future dataframe...")
         # Create the future dataframe using the make_future_df function

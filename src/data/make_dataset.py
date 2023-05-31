@@ -4,6 +4,8 @@ sys.path.insert(0,'.')
 
 from src.utils import *
 
+logger = logging.getLogger("Make_dataset")
+logger.setLevel(logging.INFO)
 
 def make_dataset(stock_name: str, period: str, interval: str) -> pd.DataFrame:
     """
