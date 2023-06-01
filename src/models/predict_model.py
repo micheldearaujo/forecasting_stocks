@@ -80,7 +80,7 @@ def predict_pipeline():
 # Execute the whole pipeline
 if __name__ == "__main__":
 
-    logger.info("Starting the Inference pipeline..\n")
+    logger.info("Starting the Inference pipeline...\n")
 
     predict_pipeline()
 
