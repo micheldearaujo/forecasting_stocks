@@ -236,13 +236,6 @@ sortedcollections @ file:///tmp/build/80754af9/sortedcollections_1611172717284/w
 sortedcontainers @ file:///tmp/build/80754af9/sortedcontainers_1623949099177/work
 soupsieve @ file:///tmp/build/80754af9/soupsieve_1616183228191/work
 Sphinx==4.2.0
-sphinxcontrib-applehelp @ file:///home/ktietz/src/ci/sphinxcontrib-applehelp_1611920841464/work
-sphinxcontrib-devhelp @ file:///home/ktietz/src/ci/sphinxcontrib-devhelp_1611920923094/work
-sphinxcontrib-htmlhelp @ file:///tmp/build/80754af9/sphinxcontrib-htmlhelp_1623945626792/work
-sphinxcontrib-jsmath @ file:///home/ktietz/src/ci/sphinxcontrib-jsmath_1611920942228/work
-sphinxcontrib-qthelp @ file:///home/ktietz/src/ci/sphinxcontrib-qthelp_1611921055322/work
-sphinxcontrib-serializinghtml @ file:///tmp/build/80754af9/sphinxcontrib-serializinghtml_1624451540180/work
-sphinxcontrib-websupport @ file:///tmp/build/80754af9/sphinxcontrib-websupport_1597081412696/work
 spyder @ file:///tmp/build/80754af9/spyder_1636479868270/work
 spyder-kernels @ file:///tmp/build/80754af9/spyder-kernels_1634236920897/work
 SQLAlchemy @ file:///tmp/build/80754af9/sqlalchemy_1626947882125/work
