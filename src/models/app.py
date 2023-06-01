@@ -29,7 +29,7 @@ def front_end():
     Please keep in mind that this is just a educational tool and you should not perform financial operations based on that.
     """)
 
-    st.sidebar.write("""### Choose your filters""")
+    st.sidebar.write("""### Choose your filters here""")
 
     STOCK_NAME = st.sidebar.selectbox(
         "Which stock do you want to track?",
