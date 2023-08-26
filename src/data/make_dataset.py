@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 import sys
-sys.path.insert(0,'.')
+sys.path.insert(0,'../src')
 
 from src.utils import *
 
+logger = logging.getLogger("Make_dataset")
+logger.setLevel(logging.INFO)
 
 def make_dataset(stock_name: str, period: str, interval: str) -> pd.DataFrame:
     """

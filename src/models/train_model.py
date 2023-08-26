@@ -4,7 +4,17 @@ sys.path.insert(0,'.')
 
 from src.utils import *
 
+logger = logging.getLogger("Model_Training")
+logger.setLevel(logging.INFO)
+
+
 def load_production_model_params(client: mlflow.tracking.client.MlflowClient, stock_name: str) -> tuple:
+    """
+    This function loads the production model
+    in order to get it's parameters.
+
+    ---- Don't know if it is working!! ----
+    """
 
     # create empty list to store model versions
     models_versions = []
@@ -17,22 +27,24 @@ def load_production_model_params(client: mlflow.tracking.client.MlflowClient, st
     current_prod_model = [x for x in models_versions if x['current_stage'] == 'Production'][0]
     prod_validation_model_params = mlflow.get_run(current_prod_model['run_id']).data.params
 
-    # remove unsignificant params
-    # prod_validation_model_params_new = {}
-    # for key, value in prod_validation_model_params.items():
-    #     if key in xgboost_hyperparameter_config.keys():
-    #         prod_validation_model_params_new[key] = value
-
+    # Create a new dictionary to store only the != None Parameters based on a configuration dictionary
     prod_validation_model_params_new = {k: v for k, v in prod_validation_model_params.items() if k in xgboost_hyperparameter_config.keys()}
 
     return prod_validation_model_params_new, current_prod_model
         
 
-def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, params: dict) -> xgb.sklearn.XGBRegressor:
+def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, params: dict, stock_name: str) -> xgb.sklearn.XGBRegressor:
+    """
+    Trains the XGBoost model with the full dataset to perform out-of-sample inference.
+
+    --- This function is not using the production Parmeters and is not saving the model into MLFlow --
+    ------- FIGURE OUT WHY ------
+    """
+    
     # use existing params
     xgboost_model = xgb.XGBRegressor(
         eval_metric=["rmse", "logloss"],
-        **params
+        #**params
     )
 
     # train the model
@@ -43,19 +55,23 @@ def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, params: dict
         verbose=0
     )
 
+    # save as joblib
+    dump(xgboost_model, f"./models/{stock_name}_{dt.datetime.today().date()}.joblib")
+
     return xgboost_model
 
 
 def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False) -> matplotlib.figure.Figure:
-    """Extracting the XGBoost Learning Curves.
+    """
+    Extracting the XGBoost Learning Curves.
     Can display the figure or not.
 
     Args:
-        model (xgb.sklearn.XGBRegressor): Fit XGBoost model
+        model (xgb.sklearn.XGBRegressor): Fitted XGBoost model
         display (bool, optional): Display the figure. Defaults to False.
 
     Returns:
-        _type_: Matplotlib figure
+        matplotlib.figure.Figure: Learning curves figure
     """
 
     # extract the learning curves
@@ -83,16 +99,13 @@ def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False
 
 def train_pipeline():
 
-    # create the mlflow client
     client = MlflowClient()
     
     logger.debug("Loading the featurized dataset..")
     stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
 
-    # iterate over the stocks
     for stock_name in stock_df_feat_all["Stock"].unique():
 
-        # filter and drop the columns
         stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].drop("Stock", axis=1).copy()
 
         #logger.debug(f"Creating training dataset for stock {stock_name}..")
@@ -103,12 +116,16 @@ def train_pipeline():
 
         # load the production model parameters
         logger.debug("Loading the production model parameters..")
-        prod_validation_model_params, current_prod_model = load_production_model_params(client, stock_name)
 
+        #prod_validation_model_params, current_prod_model = load_production_model_params(client, stock_name)
+        prod_validation_model_params = {}
+
+        mlflow.set_experiment(experiment_name="Training_Inference_Models")
+        
         with mlflow.start_run(run_name=f"model_inference_{stock_name}") as run:
 
             logger.debug("Training the model..")
-            xgboost_model = train_inference_model(X_train, y_train, prod_validation_model_params)
+            xgboost_model = train_inference_model(X_train, y_train, prod_validation_model_params, stock_name)
 
             logger.debug("Plotting the learning curves..")
             fig = extract_learning_curves(xgboost_model)
@@ -163,13 +180,13 @@ def train_pipeline():
                 )
 
                 # give model version a description
-                client.update_model_version(
-                    name=f"{model_config['REGISTER_MODEL_NAME_INF']}_{stock_name}",
-                    version=model_details.version,
-                    description=f"""This is the inference model for stock {STOCK_NAME}, trained based on the Hyperparameters
-                    from the validation model version {current_prod_model['version']} \
-                    in Production."""
-                )
+                # client.update_model_version(
+                #     name=f"{model_config['REGISTER_MODEL_NAME_INF']}_{stock_name}",
+                #     version=model_details.version,
+                #     description=f"""This is the inference model for stock {STOCK_NAME}, trained based on the Hyperparameters
+                #     from the validation model version {current_prod_model['version']} \
+                #     in Production."""
+                # )
 
             except IndexError:
 

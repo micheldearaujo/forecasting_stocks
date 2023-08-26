@@ -50,7 +50,7 @@ from mlflow import MlflowClient
 plt.style.use("fivethirtyeight")
 
 # Define dates to start and end
-initial_stock_date = dt.datetime.now().date() - dt.timedelta(days=3*365)
+initial_stock_date = dt.datetime.now().date() - dt.timedelta(days=5*365)
 final_stock_date = dt.datetime.now().date()
 
 model_config = {
@@ -67,7 +67,7 @@ model_config = {
 features_list = ["day_of_month", "month", "quarter", "Close_lag_1"]
 
 # Define a ação para procurar
-PERIOD = '800d'
+PERIOD = '2600d'
 INTERVAL = '1d'
 STOCK_NAME = 'BOVA11.SA'
 stocks_list = ["BOVA11.SA", "ITUB4.SA", "VALE3.SA", "NFLX"]
@@ -75,9 +75,8 @@ stocks_list = ["BOVA11.SA", "ITUB4.SA", "VALE3.SA", "NFLX"]
 # Configura o logging
 log_format = "[%(name)s][%(levelname)-6s] %(message)s"
 logging.basicConfig(format=log_format)
-logger = logging.getLogger("Status")
-logger.setLevel(logging.DEBUG)
-
+logger = logging.getLogger("Functions")
+logger.setLevel(logging.INFO)
 
 # paths
 ROOT_DATA_PATH = "./data"

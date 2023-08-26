@@ -38,14 +38,15 @@ def ts_train_test_split(data: pd.DataFrame, target:str, test_size: int):
     return X_train, X_test, y_train, y_test
 
 
-def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model_rmse: float, stock_name: str):
+def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model_mae: float, model_wape: float, stock_name: str):
     """
     Creates visualizations of the model validation
 
     Paramters:
         pred_df: DataFrame with true values, predictions and the date column
         model_mape: The validation MAPE
-        model_rmse: The validation RMSE
+        model_mae: The validation MAE
+        model_wape: The validation WAPE
 
     Returns:
         None
@@ -88,7 +89,7 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
         sizes=(80, 80), legend=False
     )
 
-    axs.set_title(f"Default XGBoost {model_config['FORECAST_HORIZON']} days Forecast for {stock_name}\nMAPE: {round(model_mape*100, 2)}% | RMSE: R${model_rmse}")
+    axs.set_title(f"Default XGBoost {model_config['FORECAST_HORIZON']} days Forecast for {stock_name}\nMAPE: {round(model_mape*100, 2)}% | MAE: R${model_mae} | WAPE: {model_wape}")
     axs.set_xlabel("Date")
     axs.set_ylabel("R$")
 
@@ -176,7 +177,6 @@ def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list:
     # add stock column to iterate
     future_df["Stock"] = model_df.Stock.unique()[0]
 
-
     # build the features for the future dataframe using the specified features
     inference_features_list = features_list[:-1]
     future_df = build_features(future_df, inference_features_list, save=False)
@@ -186,10 +186,6 @@ def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list:
     future_df = future_df[future_df["day_of_week"].isin(["Sunday", "Saturday"]) == False]
     future_df = future_df.drop("day_of_week", axis=1)
     future_df = future_df.reset_index(drop=True)
-
-    # Ensure the data types of the features are correct
-    #for feature in inference_features_list:
-    #    future_df[feature] = future_df[feature].astype("int")
     
     # set the first lagged price value to the last price from the training data
     future_df["Close_lag_1"] = 0

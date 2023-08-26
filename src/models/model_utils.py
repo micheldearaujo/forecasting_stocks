@@ -136,7 +136,7 @@ def make_predict(model, forecast_horizon: int, future_df: pd.DataFrame) -> pd.Da
     Make predictions for the next `forecast_horizon` days using a XGBoost model
     
     Parameters:
-        X (pandas dataframe): The input data
+        X (pandas dataframe): The features data
         y (pandas dataframe): The target data
         forecast_horizon (int): Number of days to forecast
         
@@ -175,16 +175,17 @@ def time_series_grid_search_xgb(X, y, param_grid: dict, stock_name, n_splits=5, 
     """
     Performs time series hyperparameter tuning on an XGBoost model using grid search.
     
-    Parameters:
-    - X (pd.DataFrame): The input feature data
-    - y (pd.Series): The target values
-    - param_grid (dict): Dictionary of hyperparameters to search over
-    - n_splits (int): Number of folds for cross-validation (default: 5)
-    - random_state (int): Seed for the random number generator (default: 0)
+    Args:
+        X (pd.DataFrame): The input feature data
+        y (pd.Series): The target values
+        param_grid (dict): Dictionary of hyperparameters to search over
+        n_splits (int): Number of folds for cross-validation (default: 5)
+        random_state (int): Seed for the random number generator (default: 0)
     
     Returns:
-    - best_model (xgb.XGBRegressor): The best XGBoost model found by the grid search
-    - best_params (dict): The best hyperparameters found by the grid search
+        tuple: A tuple containing the following elements:
+            best_model (xgb.XGBRegressor): The best XGBoost model found by the grid search
+            best_params (dict): The best hyperparameters found by the grid search
     """
 
     # perform time series cross-validation

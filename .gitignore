@@ -24,10 +24,10 @@ var/
 *.egg
 
 # mlruns
-#mlruns/0/
+mlruns/
 
 # reports and figures
-reports/figures/
+reports/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
