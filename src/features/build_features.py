@@ -52,7 +52,6 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
     try:
         logger.debug("Rounding the features to 2 decimal places...")
         # handle exception when building the future dataset
-        print(final_df_featurized.columns)
         final_df_featurized['Close'] = final_df_featurized['Close'].apply(lambda x: round(x, 2))
         final_df_featurized['Close_lag_1'] = final_df_featurized['Close_lag_1'].apply(lambda x: round(x, 2))
         

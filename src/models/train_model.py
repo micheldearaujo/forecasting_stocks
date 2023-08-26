@@ -9,6 +9,12 @@ logger.setLevel(logging.INFO)
 
 
 def load_production_model_params(client: mlflow.tracking.client.MlflowClient, stock_name: str) -> tuple:
+    """
+    This function loads the production model
+    in order to get it's parameters.
+
+    ---- Don't know if it is working!! ----
+    """
 
     # create empty list to store model versions
     models_versions = []
@@ -21,12 +27,19 @@ def load_production_model_params(client: mlflow.tracking.client.MlflowClient, st
     current_prod_model = [x for x in models_versions if x['current_stage'] == 'Production'][0]
     prod_validation_model_params = mlflow.get_run(current_prod_model['run_id']).data.params
 
+    # Create a new dictionary to store only the != None Parameters based on a configuration dictionary
     prod_validation_model_params_new = {k: v for k, v in prod_validation_model_params.items() if k in xgboost_hyperparameter_config.keys()}
 
     return prod_validation_model_params_new, current_prod_model
         
 
 def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, params: dict, stock_name: str) -> xgb.sklearn.XGBRegressor:
+    """
+    Trains the XGBoost model with the full dataset to perform out-of-sample inference.
+
+    --- This function is not using the production Parmeters and is not saving the model into MLFlow --
+    ------- FIGURE OUT WHY ------
+    """
     
     # use existing params
     xgboost_model = xgb.XGBRegressor(
@@ -49,7 +62,8 @@ def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, params: dict
 
 
 def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False) -> matplotlib.figure.Figure:
-    """Extracting the XGBoost Learning Curves.
+    """
+    Extracting the XGBoost Learning Curves.
     Can display the figure or not.
 
     Args:

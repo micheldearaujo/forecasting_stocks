@@ -29,7 +29,7 @@ def front_end():
     Please keep in mind that this is just a educational tool and you should not perform financial operations based on that.
     """)
 
-    st.sidebar.write("""### Choose your filters""")
+    st.sidebar.write("""### Choose your filters here""")
 
     STOCK_NAME = st.sidebar.selectbox(
         "Which stock do you want to track?",
@@ -187,9 +187,9 @@ def front_end():
 
 
     # Opção para enviar feedback
-    feedback = st.text_input("Envie seu feedback:")
+    feedback = st.text_input("Do you havy any feedback? Let your ideias flow:")
     if feedback:
-        st.write("Obrigado pelo seu feedback:", feedback[::-1])
+        st.write("Thanks for your feedback, we will carefully look at your sugestions!")
         
         with open(os.path.join(OUTPUT_DATA_PATH, 'feedbacks.csv'), 'a') as file:
             csv_writer = writer(file)

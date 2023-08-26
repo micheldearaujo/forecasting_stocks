@@ -13,7 +13,7 @@ logger.setLevel(logging.INFO)
 
 def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, stock_name: str) -> pd.DataFrame:
     """
-    Make predictions for the next `forecast_horizon` days using a XGBoost model.
+    Make predictions for the past `forecast_horizon` days using a XGBoost model.
     This model is validated using One Shot Training, it means that we train the model
     once, and them perform the `forecast_horizon` predictions only loading the mdoel.
     
@@ -35,11 +35,14 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     X_train = X.iloc[:-forecast_horizon, :]
     y_train = y.iloc[:-forecast_horizon]
     
+    # --------- This Parameter loading is not WORKING!!! --------
     # load the best model
     xgboost_model = load(f"./models/params/{stock_name}_params.joblib")
+
     # get the best parameters
     parameters = xgboost_model.get_xgb_params()
     parameters.pop("eval_metric")
+    # ------------------------------------------------------------
 
     # start the mlflow tracking
     with mlflow.start_run(run_name=f"model_validation_{stock_name}") as run:
