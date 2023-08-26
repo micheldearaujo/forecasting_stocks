@@ -7,7 +7,7 @@ from src.data.make_dataset import make_dataset
 from src.models.train_model import train_pipeline
 from src.models.predict_model import predict_pipeline
 from src.models.hyperparam_tune import hyperopt_tune_pipeline
-from src.models.validate_model import model_validation_pipeline
+from src.models.test_model import model_validation_pipeline
 from src.models.app import front_end
 
 def execute_full_pipeline():
@@ -31,13 +31,17 @@ def execute_full_pipeline():
     logger.info("Executing the feature engineering pipeline..\n")
     stock_df_feat = build_features(stock_df, features_list)
 
-    # execute the model Cross val pipeline
-    logger.info("Executing the model tuning pipeline..\n")
-    hyperopt_tune_pipeline()
+    # # execute the model Cross val pipeline
+    # logger.info("Executing the model tuning pipeline..\n")
+    # hyperopt_tune_pipeline()
     
     # execute the model training pipeline
     logger.info("Executing the model training pipeline..\n")
     train_pipeline()
+
+    # execute the model testing pipeline
+    logger.info("Executing the model training pipeline..\n")
+    model_validation_pipeline()
     
     # execute the model inference pipeline
     logger.info("Executing the model inference pipeline..\n")
