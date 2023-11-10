@@ -105,7 +105,7 @@ class Trader:
 
         self.data['Buy Signals'] = self.buy_signals
         self.data['Sell Signals'] = self.sell_signals
-        
+
         self.data.index = pd.to_datetime(self.data.Date)
         if display_results:
             fig, ax = plt.subplots(figsize=(12, 8))

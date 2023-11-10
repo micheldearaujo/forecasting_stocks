@@ -93,7 +93,6 @@ def front_end():
     full_df["Price"] = full_df["Close"] + full_df["Forecast"]
     full_df = full_df[['Date', 'Class', 'Price']]
 
-
     # Performs algorithmic trading
     trader = Trader(STOCK_NAME, full_df, [], [])
     trader.preprocess_dataset(ma_1, ma_2)
