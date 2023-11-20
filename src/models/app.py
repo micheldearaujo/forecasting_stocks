@@ -33,7 +33,7 @@ def front_end():
 
     STOCK_NAME = st.sidebar.selectbox(
         "Which stock do you want to track?",
-        ("BOVA11.SA", "ITUB4.SA", "VALE3.SA", "NFLX")
+        ("BOVA11.SA", "BCFF11.SA", "MXRF11.SA", "HGLG11.SA", "XPLG11.SA", "HGRU11.SA")
     )
 
     # get the historical starting date
@@ -92,7 +92,6 @@ def front_end():
     full_df["Class"] = full_df["Close"].apply(lambda x: "Historical" if x > 0 else "Forecast")
     full_df["Price"] = full_df["Close"] + full_df["Forecast"]
     full_df = full_df[['Date', 'Class', 'Price']]
-
 
     # Performs algorithmic trading
     trader = Trader(STOCK_NAME, full_df, [], [])
