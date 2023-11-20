@@ -19,7 +19,7 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     
     Parameters:
         X (pandas dataframe): The input data
-        y (pandas dataframe): The target data
+        y (pandas Series): The target data
         forecast_horizon (int): Number of days to forecast
         
     Returns:
@@ -37,14 +37,16 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     
     # --------- This Parameter loading is not WORKING!!! --------
     # load the best model
-    xgboost_model = load(f"./models/params/{stock_name}_params.joblib")
+    # xgboost_model = load(f"./models/params/{stock_name}_params.joblib")
 
     # get the best parameters
-    parameters = xgboost_model.get_xgb_params()
-    parameters.pop("eval_metric")
-    # ------------------------------------------------------------
+    # parameters = xgboost_model.get_xgb_params()
+    parameters = {}
+    # parameters.pop("eval_metric")
+    # # ------------------------------------------------------------
 
-    # start the mlflow tracking
+    # # start the mlflow tracking
+    mlflow.set_experiment(experiment_name="Testing_Models")
     with mlflow.start_run(run_name=f"model_validation_{stock_name}") as run:
 
         # fit the model again with the best parameters
