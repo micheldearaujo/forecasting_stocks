@@ -1,23 +1,21 @@
 import sys
 sys.path.insert(0,'.')
 
+import re
+
 from src.utils import *
 from src.features.build_features import build_features
 from src.models.model_utils import (
     make_predict
 )
+from src.config import features_list
 
 logger = logging.getLogger("Inference_Pipeline")
-logger.setLevel(logging.INFO)
-
-features_list = ["day_of_month", "month", "quarter", "Close_lag_1"]
+logger.setLevel(logging.DEBUG)
 
 def predict_pipeline():
     """
     Main function that creates a future dataframe, makes predictions, and prints the predictions.
-
-
-    ----- THIS FUNCTION IS NOT USING THE MLFLOW MODEL. IT IS USING THE JOBLIB ONE. FIX THAT !! ---
 
     Parameters:
         None
@@ -27,32 +25,45 @@ def predict_pipeline():
 
     client = MlflowClient()
 
-    logger.debug("Loading the featurized dataset..")
+    logger.debug("Loading the featurized dataset...")
     # load the featurized dataset
     stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
     
     # create empty dataset to store all the predictions
     final_predictions_df = pd.DataFrame()
 
-    for stock_name in stock_df_feat_all["Stock"].unique():
+    for stock_name in [stock_df_feat_all["Stock"].unique()[0]]:
 
         stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].copy()
 
-        logger.debug(f"\nLoading the production model for stock {stock_name}...")
+        logger.debug(f"Loading the production model for stock {stock_name}...")
 
-        # -------------------- FIX THE MLFLOW MODEL LOADING --------------------
-        # create empty list to store the model versions
+        # Need to load the current prod inference model now, to archive it
         models_versions = []
-        for mv in client.search_model_versions("name='{}_{}'".format(model_config['REGISTER_MODEL_NAME_INF'], stock_name)):
+
+        for mv in client.search_model_versions("name='{}_{}'".format(model_config[f'REGISTER_MODEL_NAME_INF'], stock_name)):
             models_versions.append(dict(mv))
 
-        # load the production model
-        #current_prod_model_info = [x for x in models_versions if x['current_stage'] == 'Production'][0]
-        #current_prod_model_uri = f"./mlruns/0/{current_prod_model_info['run_id']}/artifacts/{model_config['MODEL_NAME']}_{stock_name}"
-        #xgboost_model = mlflow.xgboost.load_model(model_uri=current_prod_model_uri)
-        # -------------------------------------------------------------------------
-        
-        xgboost_model = load(f"./models/{stock_name}_{dt.datetime.today().date()}.joblib")
+        # Check if there is production model
+        try:
+            logger.debug("Previous model version found. Loading it...") 
+    
+            current_prod_inf_model = [x for x in models_versions if x['current_stage'] == 'Production'][0]
+            current_model_path = current_prod_inf_model['source']
+            current_model_path = re.search(r'mlruns.*/model', current_model_path)
+            current_model_path = current_model_path.group()
+
+            # TODO: Corrigir esse xgboost_model aqui, pois pode ser qualquer modelo
+            # Sugestão: 'xgboost_model_' vira "best_model"
+            current_model_path = current_model_path[:-5] + 'xgboost_model_' + stock_name
+            logger.debug(f"Loading model from path: \n{current_model_path}")
+            current_prod_inf_model = mlflow.xgboost.load_model(model_uri='./'+current_model_path)
+
+
+        except IndexError:
+
+            logger.warning("NO PRODUCTION MODEL FOUND. STOPPING THE PIPELINE! ")
+            break
 
         # Create the future dataframe using the make_future_df function
         logger.debug("Creating the future dataframe...")
@@ -65,7 +76,7 @@ def predict_pipeline():
         logger.debug("Making predictions...")
         
         predictions_df = make_predict(
-            model=xgboost_model,
+            model=current_prod_inf_model,
             forecast_horizon=model_config["FORECAST_HORIZON"]-4,
             future_df=future_df
         )
@@ -77,11 +88,11 @@ def predict_pipeline():
         final_predictions_df = pd.concat([final_predictions_df, predictions_df], axis=0)
 
     # write the predictions to a csv file
-    logger.debug("Writing the predictions to a csv file...")
+    logger.debug("Writing the predictions to database...")
 
     final_predictions_df.to_csv(os.path.join(OUTPUT_DATA_PATH, 'output_stock_prices.csv'), index=False)
 
-    logger.debug("Predictions written sucessfully!")
+    logger.debug("Predictions written successfully!")
 
 
 # Execute the whole pipeline
@@ -91,5 +102,5 @@ if __name__ == "__main__":
 
     predict_pipeline()
 
-    logger.info("\nInference Pipeline was sucessful!\n")
+    logger.info("Inference Pipeline was successful!\n")
 
