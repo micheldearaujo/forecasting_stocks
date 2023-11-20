@@ -45,7 +45,7 @@ def front_end():
     # Definir as opções de cores para Forecasting e Historical
     forecast_color = st.sidebar.color_picker('Pick a color for the Forecasting', '#1DF7F2')
     historical_color = st.sidebar.color_picker('Pick a color for the Historical', '#ED33FF')
-    validation_color = st.sidebar.color_picker('Pick a color for the Validation', '#FD8788')
+    validation_color = st.sidebar.color_picker('Pick a color for the Testing', '#FD8788')
 
     ma_1 = st.sidebar.text_input("Digite a quantidade de dias da média móvel menor.", 3)
     try:
@@ -70,11 +70,11 @@ def front_end():
     st.sidebar.write("Model training date: ", validation_report_df["Training_Date"].values[0])
     st.sidebar.write("Model inference date: ", validation_report_df["Training_Date"].values[0])
 
-    st.sidebar.write("#### Validation Metrics")
-    st.sidebar.write("Validation MAPE", validation_report_df["MAPE"].values[0])
-    st.sidebar.write("Validation WAPE", validation_report_df["WAPE"].values[0])
-    st.sidebar.write("Validation MAE", validation_report_df["MAE"].values[0])
-    st.sidebar.write("Validation RMSE", validation_report_df["RMSE"].values[0])
+    st.sidebar.write("#### Testing Metrics")
+    st.sidebar.write("Testing MAPE", validation_report_df["MAPE"].values[0])
+    st.sidebar.write("Testing WAPE", validation_report_df["WAPE"].values[0])
+    st.sidebar.write("Testing MAE", validation_report_df["MAE"].values[0])
+    st.sidebar.write("Testing RMSE", validation_report_df["RMSE"].values[0])
 
     st.sidebar.write("#### Data")
     st.sidebar.write("Data source: Yahoo Finance")
@@ -114,7 +114,7 @@ def front_end():
         color="Class",
         symbol="Class",
         title=f"{model_config['FORECAST_HORIZON']-4} days Forecast for {STOCK_NAME}",
-        color_discrete_map={'Forecast': forecast_color, 'Historical': historical_color, 'Validation': validation_color}
+        color_discrete_map={'Forecast': forecast_color, 'Historical': historical_color, 'Testing': validation_color}
     )
 
     
@@ -137,13 +137,13 @@ def front_end():
 
     # make the figure using plotly
     fig = px.line(
-        full_df[full_df['Class'] != "Validation"],
+        full_df[full_df['Class'] != "Testing"],
         x="Date",
         y="Price",
         color="Class",
         symbol="Class",
         title=f"Algorithmic Trading for {STOCK_NAME}",
-        color_discrete_map={'Forecast': forecast_color, 'Historical': historical_color, 'Validation': validation_color}
+        color_discrete_map={'Forecast': forecast_color, 'Historical': historical_color, 'Testing': validation_color}
     )
 
     fig.add_trace(go.Scatter(

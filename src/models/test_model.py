@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
-sys.path.insert(0,'.')
+sys.path.insert(0, '.')
 
 from src.utils import *
 from src.models.train_model import extract_learning_curves
@@ -35,15 +35,6 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     X_train = X.iloc[:-forecast_horizon, :]
     y_train = y.iloc[:-forecast_horizon]
     
-    # --------- This Parameter loading is not WORKING!!! --------
-    # load the best model
-    # xgboost_model = load(f"./models/params/{stock_name}_params.joblib")
-
-    # get the best parameters
-    # parameters = xgboost_model.get_xgb_params()
-    parameters = {}
-    # parameters.pop("eval_metric")
-    # # ------------------------------------------------------------
 
     # # start the mlflow tracking
     mlflow.set_experiment(experiment_name="Testing_Models")
@@ -114,14 +105,15 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         pred_df["Model"] = str(type(xgboost_model)).split('.')[-1][:-2]
 
         # Plotting the Validation Results
-        fig = visualize_validation_results(pred_df, model_mape, model_mae, model_wape, stock_name)
+        validation_metrics_fig = visualize_validation_results(pred_df, model_mape, model_mae, model_wape, stock_name)
 
         # Plotting the Learning Results
-        fig2 = extract_learning_curves(xgboost_model)
+        learning_curves_fig = extract_learning_curves(xgboost_model)
 
         # ---- logging ----
         logger.debug("Logging the results to MLFlow")
         # log the parameters
+        parameters = xgboost_model.get_xgb_params()
         mlflow.log_params(parameters)
 
         # log the metrics
@@ -131,8 +123,8 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         mlflow.log_metric("WAPE", model_wape)
 
         # log the figure
-        mlflow.log_figure(fig, "validation_results.png")
-        mlflow.log_figure(fig2, "learning_curves.png")
+        mlflow.log_figure(validation_metrics_fig, "validation_results.png")
+        mlflow.log_figure(learning_curves_fig, "learning_curves.png")
 
         # get model signature
         model_signature = infer_signature(X_train, pd.DataFrame(y_train))
@@ -160,8 +152,8 @@ def model_validation_pipeline():
     # iterate over the stocks
     validation_report_df = pd.DataFrame()
 
-    for stock_name in stock_df_feat_all["Stock"].unique():
-        logger.info("Validating the model for the stock: %s"%stock_name)
+    for stock_name in [stock_df_feat_all["Stock"].unique()[0]]:
+        logger.info("Testing the model for the stock: %s"%stock_name)
 
         # filter the stock and drop the stock column
         stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].copy().drop("Stock", axis=1)
@@ -181,7 +173,7 @@ def model_validation_pipeline():
     
     # export the validation dataframe
     validation_report_df = validation_report_df.rename(columns={"Forecast": "Price"})
-    validation_report_df["Class"] = "Validation"
+    validation_report_df["Class"] = "Testing"
     validation_report_df.to_csv(os.path.join(OUTPUT_DATA_PATH, 'validation_stock_prices.csv'), index=False)
 
 # Execute the whole pipeline

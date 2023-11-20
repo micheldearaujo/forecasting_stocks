@@ -56,7 +56,7 @@ def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, params: dict
     )
 
     # save as joblib
-    dump(xgboost_model, f"./models/{stock_name}_{dt.datetime.today().date()}.joblib")
+    #dump(xgboost_model, f"./models/{stock_name}_{dt.datetime.today().date()}.joblib")
 
     return xgboost_model
 
@@ -104,7 +104,7 @@ def train_pipeline():
     logger.debug("Loading the featurized dataset..")
     stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
 
-    for stock_name in stock_df_feat_all["Stock"].unique():
+    for stock_name in [stock_df_feat_all["Stock"].unique()[0]]:
 
         stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].drop("Stock", axis=1).copy()
 
@@ -145,6 +145,7 @@ def train_pipeline():
                 input_example=X_train.head(),
                 signature=model_signature
             )
+            print("artifact path: ", f"{model_config['MODEL_NAME']}_{stock_name}"), 
 
             # register the model
             logger.debug("Registering the model...")
@@ -152,8 +153,10 @@ def train_pipeline():
                 model_uri = f"runs:/{run.info.run_id}/{run.info.run_name}",
                 name = f"{model_config[f'REGISTER_MODEL_NAME_INF']}_{stock_name}"
             )
-
-            logger.debug("Loading the current Inference Production model...")
+            print("Model registration URI: ", f"runs:/{run.info.run_id}/{run.info.run_name}")
+            print("run_name: ", f"model_inference_{stock_name}")
+            parameters = xgboost_model.get_xgb_params()
+            mlflow.log_params(parameters)
 
             # Need to load the current prod inference model now, to archive it
             models_versions = []
@@ -163,6 +166,8 @@ def train_pipeline():
 
             # Check if there is production model
             try:
+                logger.debug("Previous model version found. Transitioning the old version to Archived...") 
+
                 current_prod_inf_model = [x for x in models_versions if x['current_stage'] == 'Production'][0]
 
                 # Archive the previous version
@@ -178,19 +183,14 @@ def train_pipeline():
                     version=model_details.version,
                     stage='Production',
                 )
-
-                # give model version a description
-                # client.update_model_version(
-                #     name=f"{model_config['REGISTER_MODEL_NAME_INF']}_{stock_name}",
-                #     version=model_details.version,
-                #     description=f"""This is the inference model for stock {STOCK_NAME}, trained based on the Hyperparameters
-                #     from the validation model version {current_prod_model['version']} \
-                #     in Production."""
-                # )
+                
+                logger.debug("Sucessfuly setup the new version as Production!") 
 
             except IndexError:
 
                 # just set the new model as production
+                logger.debug("No Previous model version found. Transitioning this version to Archived...") 
+
                 client.transition_model_version_stage(
                     name=f"{model_config['REGISTER_MODEL_NAME_INF']}_{stock_name}",
                     version=model_details.version,
