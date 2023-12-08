@@ -104,7 +104,7 @@ def train_pipeline():
     logger.debug("Loading the featurized dataset..")
     stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
 
-    for stock_name in [stock_df_feat_all["Stock"].unique()[0]]:
+    for stock_name in stock_df_feat_all["Stock"].unique():
 
         stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].drop("Stock", axis=1).copy()
 

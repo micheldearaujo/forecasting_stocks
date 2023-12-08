@@ -32,7 +32,7 @@ def predict_pipeline():
     # create empty dataset to store all the predictions
     final_predictions_df = pd.DataFrame()
 
-    for stock_name in [stock_df_feat_all["Stock"].unique()[0]]:
+    for stock_name in stock_df_feat_all["Stock"].unique():
 
         stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].copy()
 

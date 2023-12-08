@@ -152,7 +152,7 @@ def model_validation_pipeline():
     # iterate over the stocks
     validation_report_df = pd.DataFrame()
 
-    for stock_name in [stock_df_feat_all["Stock"].unique()[0]]:
+    for stock_name in stock_df_feat_all["Stock"].unique():
         logger.info("Testing the model for the stock: %s"%stock_name)
 
         # filter the stock and drop the stock column
