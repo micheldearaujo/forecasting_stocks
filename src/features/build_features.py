@@ -5,7 +5,7 @@ sys.path.insert(0,'.')
 from src.utils import *
 
 logger = logging.getLogger("Feature_Engineering")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -> pd.DataFrame:
@@ -36,6 +36,8 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
                 stock_df_featurized['month'] = stock_df_featurized['Date'].apply(lambda x: float(x.month))
             elif feature == "quarter":
                 stock_df_featurized['quarter'] = stock_df_featurized['Date'].apply(lambda x: float(x.quarter))
+            elif feature == "week":
+                stock_df_featurized['week'] = stock_df_featurized['Date'].apply(lambda x: float(x.week))
 
         # Create "Lag" features
         # The lag 1 feature will become the main regressor, and the regular "Close" will become the target.
@@ -76,6 +78,7 @@ if __name__ == '__main__':
     stock_df = pd.read_csv(os.path.join(RAW_DATA_PATH, 'raw_stock_prices.csv'), parse_dates=['Date'])
 
     logger.info("Featurizing the dataset...")
+    print(features_list)
     stock_df_feat = build_features(stock_df, features_list)
 
     logger.info("Finished featurizing the dataset!")
