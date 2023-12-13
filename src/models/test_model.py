@@ -3,15 +3,14 @@ import sys
 sys.path.insert(0, '.')
 
 from src.utils import *
+from src.config import xgboost_model_config
 from src.models.train_model import extract_learning_curves
 from src.models.model_utils import cd_pipeline
 
-logger = logging.getLogger("Model_Testing")
+logger = logging.getLogger("model-testing")
 logger.setLevel(logging.INFO)
 
-
-
-def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, stock_name: str) -> pd.DataFrame:
+def test_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, stock_name: str) -> pd.DataFrame:
     """
     Make predictions for the past `forecast_horizon` days using a XGBoost model.
     This model is validated using One Shot Training, it means that we train the model
@@ -43,7 +42,7 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         # fit the model again with the best parameters
         xgboost_model = xgb.XGBRegressor(
             eval_metric=["rmse", "logloss"],
-            #**parameters
+            **xgboost_model_config
         )
 
         # train the model
@@ -83,6 +82,7 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
 
             # make prediction
             prediction = xgboost_model.predict(X_test.drop("Date", axis=1))
+            print("features: ", X_test.drop("Date", axis=1).columns)
 
             # store the results
             predictions.append(prediction[0])
@@ -92,7 +92,7 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["Date", 'Actual', 'Forecast'])
         pred_df["Forecast"] = pred_df["Forecast"].astype("float64")
 
-        # Calculate the resulting metric
+        logger.debug("Calculating the evaluation metrics...")
         model_mape = round(mean_absolute_percentage_error(actuals, predictions), 4)
         model_rmse = round(np.sqrt(mean_squared_error(actuals, predictions)), 2)
         model_mae = round(mean_absolute_error(actuals, predictions), 2)
@@ -108,13 +108,14 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         validation_metrics_fig = visualize_validation_results(pred_df, model_mape, model_mae, model_wape, stock_name)
 
         # Plotting the Learning Results
-        learning_curves_fig = extract_learning_curves(xgboost_model)
+        learning_curves_fig, feat_imp = extract_learning_curves(xgboost_model)
 
         # ---- logging ----
         logger.debug("Logging the results to MLFlow")
-        # log the parameters
         parameters = xgboost_model.get_xgb_params()
+        #parameters = xgboost_model_config
         mlflow.log_params(parameters)
+        mlflow.log_param("features", list(X_test.columns))
 
         # log the metrics
         mlflow.log_metric("MAPE", model_mape)
@@ -125,6 +126,7 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         # log the figure
         mlflow.log_figure(validation_metrics_fig, "validation_results.png")
         mlflow.log_figure(learning_curves_fig, "learning_curves.png")
+        mlflow.log_figure(feat_imp, "feature_importance.png")
 
         # get model signature
         model_signature = infer_signature(X_train, pd.DataFrame(y_train))
@@ -144,7 +146,7 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     return pred_df
 
 
-def model_validation_pipeline():
+def model_testing_pipeline():
 
     logger.debug("Loading the featurized dataset..")
     stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
@@ -152,13 +154,12 @@ def model_validation_pipeline():
     # iterate over the stocks
     validation_report_df = pd.DataFrame()
 
-    for stock_name in stock_df_feat_all["Stock"].unique():
-        logger.info("Testing the model for the stock: %s"%stock_name)
+    for stock_name in [stock_df_feat_all["Stock"].unique()[0]]:
 
-        # filter the stock and drop the stock column
+        logger.info("Testing the model for the stock: %s..."%stock_name)
         stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].copy().drop("Stock", axis=1)
         
-        predictions_df = validade_model_one_shot(
+        predictions_df = test_model_one_shot(
             X=stock_df_feat.drop([model_config["TARGET_NAME"]], axis=1),
             y=stock_df_feat[model_config["TARGET_NAME"]],
             forecast_horizon=model_config['FORECAST_HORIZON'],
@@ -168,19 +169,19 @@ def model_validation_pipeline():
         predictions_df["Stock"] = stock_name
         predictions_df["Training_Date"] = dt.datetime.today().date()
 
-
         validation_report_df = pd.concat([validation_report_df, predictions_df], axis=0)
     
-    # export the validation dataframe
+    logger.debug("Writing the testing results dataframe...")
     validation_report_df = validation_report_df.rename(columns={"Forecast": "Price"})
     validation_report_df["Class"] = "Testing"
+
     validation_report_df.to_csv(os.path.join(OUTPUT_DATA_PATH, 'validation_stock_prices.csv'), index=False)
 
 # Execute the whole pipeline
 
 if __name__ == "__main__":
-    logger.info("Starting the Model Evaluation pipeline..")
+    logger.info("Starting the Model Testing pipeline...")
 
-    model_validation_pipeline()
+    model_testing_pipeline()
     
-    logger.info("Model Evaluation Pipeline was sucessful!")
+    logger.info("Model Testing Pipeline was sucessful!")

@@ -99,17 +99,15 @@ param_grid = {
 }
 
 xgboost_model_config = {
-    'LEARNING_RATE': 0.01,
-    'MAX_DEPTH': 100,
-    'MIN_DATA': 100,
-    'N_ESTIMATORS': 1000,
-    'REG_LAMBDA': 100,
-    'SCALE_POS_WEIGHT': 10,
-    'SEED': 42,
-    'SUBSAMPLE': 0.9,
-    'COLSAMPLE_BYTREE': 0.9,
-    'NUM_BOOST_ROUNDS': 200,
-    'GAMMA': 0.01
+    # 'learning_rate': 0.01,
+    'max_depth': 11,
+    'n_estimators': 40,
+    # 'reg_lambda': 10,
+    # 'scale_pos_weight': 10,
+    # 'seed': 42,
+    # 'subsample': 1.0,
+    'colsample_bytree': 1.0,
+    # 'gamma': 0.01
 }
 
 xgboost_fixed_model_config = {

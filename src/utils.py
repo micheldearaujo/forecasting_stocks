@@ -54,7 +54,7 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
 
     logger.info("Vizualizing the results...")
 
-    fig, axs = plt.subplots(figsize=(12, 5))
+    fig, axs = plt.subplots(figsize=(10, 4))
     # Plot the Actuals
     sns.lineplot(
         data=pred_df,

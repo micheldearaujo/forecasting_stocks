@@ -19,7 +19,7 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
     :return: Pandas DataFrame with the new features
     """
 
-    logger.debug("Started building features...")
+    logger.debug("Building features...")
     final_df_featurized = pd.DataFrame()
 
     for stock_name in raw_df["Stock"].unique():
