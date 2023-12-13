@@ -67,10 +67,11 @@ model_config = {
 features_list = ["day_of_month", "month", "quarter", "Close_lag_1"]
 
 # Define a ação para procurar
-PERIOD = '2600d'
+PERIOD = '3600d'
 INTERVAL = '1d'
 STOCK_NAME = 'BOVA11.SA'
-stocks_list = ["BOVA11.SA", "BCFF11.SA", "MXRF11.SA", "HGLG11.SA", "XPLG11.SA", "HGRU11.SA"]
+stocks_list = ["BOVA11.SA", "BCFF11.SA", "MXRF11.SA", "HGLG11.SA", "XPLG11.SA", "HGRU11.SA", "ITSA4.SA", "TAEE3.SA",
+               "FLRY3.SA", "VALE3.SA"]
 
 # Configura o logging
 log_format = "[%(name)s][%(levelname)-6s] %(message)s"
@@ -89,7 +90,7 @@ MODELS_PATH = "./models"
 param_grid = {
     "n_estimators": [40, 100, 300],
     "max_depth": [3, 5, 7, 9],
-    "learning_rate": [0.2, 0.3, 0.1, 0.01, 0.001],
+    "learning_rate": [0.2, 0.3, 0.1, 0.01],
     "subsample": [0.8, 1.0],
     "colsample_bytree": [1.0],
     "gamma": [0.1, 0.25, 0.5, 1.0],
