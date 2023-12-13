@@ -4,7 +4,7 @@ sys.path.insert(0,'.')
 
 from src.utils import *
 
-logger = logging.getLogger("Feature_Engineering")
+logger = logging.getLogger("feature-engineering")
 logger.setLevel(logging.DEBUG)
 
 
