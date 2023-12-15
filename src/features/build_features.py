@@ -38,6 +38,9 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
                 stock_df_featurized['quarter'] = stock_df_featurized['Date'].apply(lambda x: float(x.quarter))
             elif feature == "week":
                 stock_df_featurized['week'] = stock_df_featurized['Date'].apply(lambda x: float(x.week))
+            elif feature == "CLOSE_MA_7":
+                stock_df_featurized['CLOSE_MA_7'] = stock_df_featurized['Close'].rolling(7, closed='left').mean()
+
 
         # Create "Lag" features
         # The lag 1 feature will become the main regressor, and the regular "Close" will become the target.
@@ -56,6 +59,7 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
         # handle exception when building the future dataset
         final_df_featurized['Close'] = final_df_featurized['Close'].apply(lambda x: round(x, 2))
         final_df_featurized['Close_lag_1'] = final_df_featurized['Close_lag_1'].apply(lambda x: round(x, 2))
+        final_df_featurized['CLOSE_MA_7'] = final_df_featurized['CLOSE_MA_7'].apply(lambda x: round(x, 2))
         
     except KeyError as error:
         logger.warning("Key error when rouding numerical features.")
