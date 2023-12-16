@@ -12,6 +12,33 @@ from src.config import features_list
 logger = logging.getLogger("inference")
 logger.setLevel(logging.DEBUG)
 
+def load_production_model(logger, client, model_config, stock_name):
+
+    logger.info(f"Searching for production models for stock {stock_name}...")
+    models_versions = []
+
+    for mv in client.search_model_versions("name='{}_{}'".format(model_config[f'REGISTER_MODEL_NAME_INF'], stock_name)):
+        models_versions.append(dict(mv))
+
+    try:
+        logger.debug("Previous model version found. Loading it...") 
+        current_prod_inf_model = [x for x in models_versions if x['current_stage'] == 'Production'][0]
+        current_model_path = current_prod_inf_model['source']
+        current_model_path = re.search(r'mlruns.*/model', current_model_path)
+        current_model_path = current_model_path.group()
+
+        # TODO: Corrigir esse xgboost_model aqui, pois pode ser qualquer modelo
+        # Sugestão: 'xgboost_model_' vira "best_model"
+        current_model_path = current_model_path[:-5] + 'xgboost_model_' + stock_name
+        logger.debug(f"Loading model from path: \n{current_model_path}")
+        current_prod_model = mlflow.xgboost.load_model(model_uri='./'+current_model_path)
+
+        return current_prod_model
+
+    except IndexError:
+        logger.warning("NO PRODUCTION MODEL FOUND. STOPPING THE PIPELINE!")
+        return None
+    
 def inference_pipeline():
     """
     Run the inference pipeline for predicting stock prices using the production model.
@@ -34,11 +61,12 @@ def inference_pipeline():
     
     final_predictions_df = pd.DataFrame()
 
-    for stock_name in [stock_df_feat_all["Stock"].unique()[0]]:
+
+    for stock_name in stock_df_feat_all["Stock"].unique():
 
         stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].copy()
 
-        logger.debug(f"Searching for production models for stock {stock_name}...")
+        logger.info(f"Searching for production models for stock {stock_name}...")
         models_versions = []
         for mv in client.search_model_versions("name='{}_{}'".format(model_config[f'REGISTER_MODEL_NAME_INF'], stock_name)):
             models_versions.append(dict(mv))
@@ -66,7 +94,7 @@ def inference_pipeline():
         future_df = make_future_df(model_config["FORECAST_HORIZON"], stock_df_feat, features_list)
         future_df = future_df.drop("Stock", axis=1)
         
-        logger.debug("Making predictions...")
+        logger.debug("Predicting...")
         predictions_df = make_predict(
             model=current_prod_model,
             forecast_horizon=model_config["FORECAST_HORIZON"]-4,

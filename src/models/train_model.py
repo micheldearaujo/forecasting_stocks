@@ -17,6 +17,8 @@ def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, stock_name: 
     # use existing params
     xgboost_model = xgb.XGBRegressor(
         eval_metric=["rmse", "logloss"],
+        n_estimators=40,
+        max_depth=11
     )
 
     # train the model
@@ -61,11 +63,12 @@ def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False
     axs[1].legend()
 
     fig2, axs2 = plt.subplots(figsize=(10, 4))
-    plot_importance(model, ax=axs2)#, importance_type='gain')
-    #fig2 = plt.gcf()
+    plot_importance(model, ax=axs2, importance_type='gain')
+    
 
     if display:
         plt.show()
+        
     
     return fig, fig2
 
@@ -77,11 +80,11 @@ def train_pipeline():
     logger.debug("Loading the featurized dataset..")
     stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
 
-    for stock_name in [stock_df_feat_all["Stock"].unique()[0]]:
+    for stock_name in stock_df_feat_all["Stock"].unique():
 
         stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].drop("Stock", axis=1).copy()
 
-        logger.debug("Creating training dataset for stock %s..."%stock_name)
+        logger.info("Creating training dataset for stock %s..."%stock_name)
         X_train=stock_df_feat.drop([model_config["TARGET_NAME"], "Date"], axis=1)
         y_train=stock_df_feat[model_config["TARGET_NAME"]]
 
@@ -92,11 +95,11 @@ def train_pipeline():
             xgboost_model = train_inference_model(X_train, y_train, stock_name)
 
             logger.debug("Plotting the learning curves..")
-            fig = extract_learning_curves(xgboost_model)
+            learning_curves_fig , feat_importance_fig = extract_learning_curves(xgboost_model)
 
             logger.debug("Logging the results..")
             mlflow.log_params(xgboost_model.get_xgb_params())
-            mlflow.log_figure(fig, f"learning_curves_{stock_name}.png")
+            mlflow.log_figure(learning_curves_fig, f"learning_curves_{stock_name}.png")
 
             logger.debug(f"Logging the model to MLflow...")
             model_signature = infer_signature(X_train, pd.DataFrame(y_train))
@@ -159,7 +162,7 @@ def train_pipeline():
 
 # Execute the whole pipeline
 if __name__ == "__main__":
-    logger.info("\nStarting the training pipeline...\n")
+    logger.info("Starting the training pipeline...")
 
     train_pipeline()
 

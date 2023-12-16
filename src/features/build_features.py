@@ -39,7 +39,9 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
             elif feature == "week":
                 stock_df_featurized['week'] = stock_df_featurized['Date'].apply(lambda x: float(x.week))
             elif feature == "CLOSE_MA_7":
-                stock_df_featurized['CLOSE_MA_7'] = stock_df_featurized['Close'].rolling(7, closed='left').mean()
+                stock_df_featurized['CLOSE_MA_7'] = stock_df_featurized['Close'].rolling(30, closed='left').mean()
+                # stock_df_featurized['CLOSE_MA_3'] = stock_df_featurized['Close'].rolling(3, closed='left').mean()
+                # stock_df_featurized['CLOSE_MA_30'] = stock_df_featurized['Close'].rolling(30, closed='left').mean()
 
 
         # Create "Lag" features
