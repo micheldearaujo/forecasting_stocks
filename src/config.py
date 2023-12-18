@@ -76,8 +76,8 @@ stocks_list = ["BOVA11.SA", "BCFF11.SA", "MXRF11.SA", "HGLG11.SA", "XPLG11.SA", 
 # Configura o logging
 log_format = "[%(name)s][%(levelname)-6s] %(message)s"
 logging.basicConfig(format=log_format)
-logger = logging.getLogger("Functions")
-logger.setLevel(logging.INFO)
+logger = logging.getLogger("utililies")
+logger.setLevel(logging.DEBUG)
 
 # paths
 ROOT_DATA_PATH = "./data"

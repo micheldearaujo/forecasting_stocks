@@ -42,7 +42,7 @@ def load_production_model(logger, model_config, stock_name):
         return None
     
 
-def make_predict(model, forecast_horizon: int, future_df: pd.DataFrame) -> pd.DataFrame:
+def make_predict_new(model, forecast_horizon: int, future_df: pd.DataFrame) -> pd.DataFrame:
     """
     Make predictions for the past `forecast_horizon` days using a XGBoost model.
     This model is validated using One Shot Training, it means that we train the model
@@ -204,13 +204,14 @@ def inference_pipeline():
 
         logger.debug("Creating the future dataframe...")
         future_df = make_future_df(model_config["FORECAST_HORIZON"], stock_df_feat, features_list)
-        future_df = future_df.drop("Stock", axis=1)
+        #future_df = future_df.drop("Stock", axis=1)
         
         logger.debug("Predicting...")
-        predictions_df, feature_df = make_predict(
+        predictions_df = make_predict(
             model=current_prod_model,
             forecast_horizon=model_config["FORECAST_HORIZON"]-4,
-            future_df=future_df
+            future_df=future_df,
+            past_target_values=list(stock_df_feat['Close'].values)
         )
 
         predictions_df["Stock"] = stock_name

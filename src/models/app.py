@@ -33,7 +33,8 @@ def front_end():
 
     STOCK_NAME = st.sidebar.selectbox(
         "Which stock do you want to track?",
-        ("BOVA11.SA", "BCFF11.SA", "MXRF11.SA", "HGLG11.SA", "XPLG11.SA", "HGRU11.SA")
+        ("BOVA11.SA", "BCFF11.SA", "MXRF11.SA", "HGLG11.SA", "XPLG11.SA", "HGRU11.SA", "ITSA4.SA", "TAEE3.SA",
+               "FLRY3.SA", "VALE3.SA")
     )
 
     # get the historical starting date

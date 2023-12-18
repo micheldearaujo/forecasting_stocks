@@ -171,6 +171,8 @@ def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list:
 
     # create the future dataframe with the specified number of days
     last_training_day = model_df.Date.max()
+    print("Last Training data:")
+    print(model_df.iloc[-1])
     date_list = [last_training_day + dt.timedelta(days=x+1) for x in range(forecast_horzion)]
     future_df = pd.DataFrame({"Date": date_list})
     
@@ -178,7 +180,9 @@ def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list:
     future_df["Stock"] = model_df.Stock.unique()[0]
 
     # build the features for the future dataframe using the specified features
-    inference_features_list = features_list[:-1]
+    # TODO: Aqui ficou hardcoded, depois generalizar para n variáveis "future unknowm"
+    inference_features_list = features_list[:-2]
+    logger.debug(f"Building the following features for out-of-sample inference: {inference_features_list}")
     future_df = build_features(future_df, inference_features_list, save=False)
 
     # filter out weekends from the future dataframe
@@ -189,5 +193,9 @@ def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list:
     
     # set the first lagged price value to the last price from the training data
     future_df["Close_lag_1"] = 0
+    # TODO: Novamente, está hardcoded, precisa generalizar
+    future_df["Close_MA_7"] = 0
+    # set the first Moving Averages values
     future_df.loc[future_df.index.min(), "Close_lag_1"] = model_df[model_df["Date"] == last_training_day]['Close'].values[0]
+    future_df.loc[future_df.index.min(), "Close_MA_7"] = model_df['Close'].rolling(7).mean().values[-1]
     return future_df
