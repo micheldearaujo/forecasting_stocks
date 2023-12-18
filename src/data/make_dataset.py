@@ -4,8 +4,8 @@ sys.path.insert(0,'.')
 
 from src.utils import *
 
-logger = logging.getLogger("Make_dataset")
-logger.setLevel(logging.INFO)
+logger = logging.getLogger("make-dataset")
+logger.setLevel(logging.DEBUG)
 
 def make_dataset(stock_name: str, period: str, interval: str) -> pd.DataFrame:
     """
@@ -22,7 +22,7 @@ def make_dataset(stock_name: str, period: str, interval: str) -> pd.DataFrame:
     empty_df = pd.DataFrame()
     
     for stock_name in stocks_list:
-
+        logger.debug(f"Download data for Ticker: {stock_name}...")
         stock_price_df = yfin.Ticker(stock_name).history(period=period, interval=interval)
         stock_price_df['Stock'] = stock_name
         stock_price_df = stock_price_df[['Stock', 'Close']]

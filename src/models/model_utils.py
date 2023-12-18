@@ -130,18 +130,19 @@ def validate_model_stepwise(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     return pred_df
 
 
-def make_predict(model, forecast_horizon: int, future_df: pd.DataFrame) -> pd.DataFrame:
+def make_predict(model, forecast_horizon: int, future_df: pd.DataFrame, past_target_values: list) -> pd.DataFrame:
 
     """
     Make predictions for the next `forecast_horizon` days using a XGBoost model
     
     Parameters:
-        X (pandas dataframe): The features data
-        y (pandas dataframe): The target data
-        forecast_horizon (int): Number of days to forecast
+        model (sklearn model): Scikit-learn best model to use to perform inferece.
+        forecast_horizon (pandas dataframe): The amount of days to predict into the future.
+        future_df (pd.DataFrame): The "Feature" DataFrame (X) with future index.
+        past_df (pd.DataFrame): The past values DataFrame, to calculate the moving averages on.
         
     Returns:
-        None
+        pd.DataFrame: The future DataFrame with forecasts.
     """
 
     future_df_feat = future_df.copy()
@@ -152,14 +153,31 @@ def make_predict(model, forecast_horizon: int, future_df: pd.DataFrame) -> pd.Da
     for day in range(0, forecast_horizon):
 
         # extract the next day to predict
-        x_inference = pd.DataFrame(future_df_feat.drop("Date", axis=1).loc[day, :]).transpose()
+        logger.debug("The total featurized df:")
+
+        x_inference = pd.DataFrame(future_df_feat.drop(columns=["Date", "Stock"]).loc[day, :]).transpose()
+
         prediction = model.predict(x_inference)[0]
         predictions.append(prediction)
 
         # get the prediction and input as the lag 1
         if day != forecast_horizon-1:
-        
+            
+            # Replace the "tomorrow" lag 1 feature with today's prediction
             future_df_feat.loc[day+1, "Close_lag_1"] = prediction
+            # Replace the "tomorrow" MA feature with today's calculation
+            # TODO: Generalizar isso
+            ma_features = [7]
+
+            for ma in ma_features:
+
+                print(f"The previous 6 closing values were: {past_target_values[-ma+1:]}")
+                last_n_closing_prices = [*past_target_values[-ma+1:], prediction]
+                next_ma_value = np.mean(last_n_closing_prices)
+                future_df_feat.loc[day+1, f"Close_MA_{ma}"] = next_ma_value
+            
+            # Append the prediction to the last_closing_prices
+            past_target_values.append(prediction)
 
         else:
             # check if it is the last day, so we stop
@@ -168,6 +186,7 @@ def make_predict(model, forecast_horizon: int, future_df: pd.DataFrame) -> pd.Da
     future_df_feat["Forecast"] = predictions
     future_df_feat["Forecast"] = future_df_feat["Forecast"].astype('float64')
     future_df_feat = future_df_feat[["Date", "Forecast"]].copy()
+    
     return future_df_feat
 
 

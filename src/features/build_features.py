@@ -4,8 +4,8 @@ sys.path.insert(0,'.')
 
 from src.utils import *
 
-logger = logging.getLogger("Feature_Engineering")
-logger.setLevel(logging.INFO)
+logger = logging.getLogger("feature-engineering")
+logger.setLevel(logging.DEBUG)
 
 
 def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -> pd.DataFrame:
@@ -36,6 +36,13 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
                 stock_df_featurized['month'] = stock_df_featurized['Date'].apply(lambda x: float(x.month))
             elif feature == "quarter":
                 stock_df_featurized['quarter'] = stock_df_featurized['Date'].apply(lambda x: float(x.quarter))
+            elif feature == "week":
+                stock_df_featurized['week'] = stock_df_featurized['Date'].apply(lambda x: float(x.week))
+            elif feature == "CLOSE_MA_7":
+                stock_df_featurized['CLOSE_MA_7'] = stock_df_featurized['Close'].rolling(7, closed='left').mean()
+                # stock_df_featurized['CLOSE_MA_3'] = stock_df_featurized['Close'].rolling(3, closed='left').mean()
+                # stock_df_featurized['CLOSE_MA_30'] = stock_df_featurized['Close'].rolling(30, closed='left').mean()
+
 
         # Create "Lag" features
         # The lag 1 feature will become the main regressor, and the regular "Close" will become the target.
@@ -54,6 +61,7 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
         # handle exception when building the future dataset
         final_df_featurized['Close'] = final_df_featurized['Close'].apply(lambda x: round(x, 2))
         final_df_featurized['Close_lag_1'] = final_df_featurized['Close_lag_1'].apply(lambda x: round(x, 2))
+        final_df_featurized['CLOSE_MA_7'] = final_df_featurized['CLOSE_MA_7'].apply(lambda x: round(x, 2))
         
     except KeyError as error:
         logger.warning("Key error when rouding numerical features.")
