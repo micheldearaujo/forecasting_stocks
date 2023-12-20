@@ -45,8 +45,6 @@ from mlflow.models.signature import infer_signature
 from mlflow import MlflowClient
 
 
-
-
 plt.style.use("fivethirtyeight")
 
 # Define dates to start and end
@@ -64,14 +62,14 @@ model_config = {
     "MODEL_NAME": "xgboost_model",
 }
 
-features_list = ["day_of_month", "month", "quarter", "week", "CLOSE_MA_7", "Close_lag_1"]
+features_list = ["day_of_month", "month", "quarter", "week", "CLOSE_MA_3", "CLOSE_MA_7", "CLOSE_MA_21", "Close_lag_1", "Close_lag_3", "Close_lag_7"]
 
 # Define a ação para procurar
 PERIOD = '3600d'
 INTERVAL = '1d'
 STOCK_NAME = 'BOVA11.SA'
 stocks_list = ["BOVA11.SA", "BCFF11.SA", "MXRF11.SA", "HGLG11.SA", "XPLG11.SA", "HGRU11.SA", "ITSA4.SA", "TAEE3.SA",
-               "FLRY3.SA", "VALE3.SA"]
+               "FLRY3.SA", "VALE3.SA", "RAIZ4.SA", "SANB4.SA"]
 
 # Configura o logging
 log_format = "[%(name)s][%(levelname)-6s] %(message)s"

@@ -24,14 +24,13 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
 
     for stock_name in raw_df["Stock"].unique():
         logger.debug("Building features for stock %s..."%stock_name)
-
         stock_df_featurized = raw_df[raw_df['Stock'] == stock_name].copy()
         
         stock_df_featurized['day_of_month'] = stock_df_featurized["Date"].apply(lambda x: float(x.day))
         stock_df_featurized['month'] = stock_df_featurized['Date'].apply(lambda x: float(x.month))
         stock_df_featurized['quarter'] = stock_df_featurized['Date'].apply(lambda x: float(x.quarter))
         stock_df_featurized['week'] = stock_df_featurized['Date'].apply(lambda x: float(x.week))
-        
+        stock_df_featurized['Close'] = stock_df_featurized['Close'].apply(lambda x: round(x, 2))
         moving_averages_features = [feature for feature in features_list if "MA" in feature]
         for feature in moving_averages_features:
             ma_value = int(feature.split("_")[-1])
@@ -47,17 +46,6 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
 
         # Concatenate the new features to the final dataframe
         final_df_featurized = pd.concat([final_df_featurized, stock_df_featurized], axis=0)
-
-    # try:
-    #     logger.debug("Rounding the features to 2 decimal places...")
-    #     # handle exception when building the future dataset
-    #     final_df_featurized['Close'] = final_df_featurized['Close'].apply(lambda x: round(x, 2))
-    #     final_df_featurized['Close_lag_1'] = final_df_featurized['Close_lag_1'].apply(lambda x: round(x, 2))
-    #     final_df_featurized['CLOSE_MA_7'] = final_df_featurized['CLOSE_MA_7'].apply(lambda x: round(x, 2))
-        
-    # except KeyError as error:
-    #     logger.warning("Key error when rouding numerical features.")
-    #     print(error)
         
     
     if save:
@@ -65,6 +53,9 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
         final_df_featurized.to_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), index=False)
 
     logger.debug("Features built successfully!")
+    print(final_df_featurized.tail())
+    print(f"Dataset shape: {final_df_featurized.shape}.")
+    print(f"Amount of ticker symbols: {final_df_featurized['Stock'].nunique()}.")
 
     return final_df_featurized
 
@@ -77,6 +68,6 @@ if __name__ == '__main__':
 
     logger.info("Featurizing the dataset...")
     stock_df_feat = build_features(stock_df, features_list)
-    print(stock_df_feat)
+    
 
     logger.info("Finished featurizing the dataset!")

@@ -6,6 +6,9 @@ from src.utils import *
 from src.config import xgboost_model_config
 from src.models.train_model import extract_learning_curves
 from src.models.model_utils import cd_pipeline
+import warnings
+
+warnings.filterwarnings("ignore")
 
 logger = logging.getLogger("model-testing")
 logger.setLevel(logging.INFO)
@@ -36,7 +39,7 @@ def test_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, st
     y_train = y.iloc[:-forecast_horizon+4]
 
     final_y = y_train.copy()
-    # # start the mlflow tracking
+
     mlflow.set_experiment(experiment_name="model-testing")
     with mlflow.start_run(run_name=f"xgboost_{stock_name}") as run:
 
@@ -74,18 +77,20 @@ def test_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, st
             # so we simulate the process of predicting out-of-sample
             if len(predictions) != 0:
                 
-                # ------------ UPDATE THE "LAG_1" FEATURE USING THE LAST PREDICTED VALUE ------------
-                # we need to update the X_test["Close_lag_1"] value, because
-                # it should be equal to the last prediction (the "yesterday" value)
-                X_test.iat[0, -1] = predictions[-1]
+                lag_features = [feature for feature in X_test.columns if "lag" in feature]
+                for feature in lag_features:
+                    lag_value = int(feature.split("_")[-1])
+                    index_to_replace = list(X_test.columns).index(feature)
+                    X_test.iat[0, index_to_replace] = final_y.iloc[-lag_value]
 
-                # ------------ UPDATE THE "MA_7" FEATURE, USING THE LAST 7 "Target" VALUES ------------
-                # re-calculating the Moving Average.
-                # we need to extract he last closing prices before today
-                # last_closing_princes = final_y.iloc[:-day] # thats -11
-                last_closing_princes_ma = final_y.rolling(7).mean()
-                last_ma = last_closing_princes_ma.values[-1]
-                X_test.iat[0, -2] = last_ma
+
+                moving_averages_features = [feature for feature in X_test.columns if "MA" in feature]
+                for feature in moving_averages_features:
+                    ma_value = int(feature.split("_")[-1])
+                    last_closing_princes_ma = final_y.rolling(ma_value).mean()
+                    last_ma = last_closing_princes_ma.values[-1]
+                    index_to_replace = list(X_test.columns).index(feature)
+                    X_test.iat[0, index_to_replace] = last_ma
 
                 X_testing_df = pd.concat([X_testing_df, X_test], axis=0)
 
@@ -159,7 +164,7 @@ def test_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, st
         #cd_pipeline(run.info, y_train, pred_df, model_mape, stock_name)
 
     
-    return pred_df#, X_testing_df
+    return pred_df, X_testing_df
 
 
 def model_testing_pipeline():
@@ -175,7 +180,7 @@ def model_testing_pipeline():
         logger.info("Testing the model for the stock: %s..."%stock_name)
         stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].copy().drop("Stock", axis=1)
         
-        predictions_df = test_model_one_shot(
+        predictions_df, X_testing_df = test_model_one_shot(
             X=stock_df_feat.drop([model_config["TARGET_NAME"]], axis=1),
             y=stock_df_feat[model_config["TARGET_NAME"]],
             forecast_horizon=model_config['FORECAST_HORIZON'],
