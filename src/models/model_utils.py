@@ -167,8 +167,23 @@ def make_predict(model, forecast_horizon: int, future_df: pd.DataFrame, past_tar
             future_df_feat.loc[day+1, "Close_lag_1"] = prediction
             # Replace the "tomorrow" MA feature with today's calculation
             # TODO: Generalizar isso
-            ma_features = [7]
+            
+            lag_features = [feature for feature in X_test.columns if "lag" in feature]
+            for feature in lag_features:
+                lag_value = int(feature.split("_")[-1])
+                index_to_replace = list(X_test.columns).index(feature)
+                X_test.iat[0, index_to_replace] = final_y.iloc[-lag_value]
 
+            
+            ma_features = [7]
+            moving_averages_features = [feature for feature in X_test.columns if "MA" in feature]
+            for feature in moving_averages_features:
+                ma_value = int(feature.split("_")[-1])
+                last_closing_princes_ma = final_y.rolling(ma_value).mean()
+                last_ma = last_closing_princes_ma.values[-1]
+                index_to_replace = list(X_test.columns).index(feature)
+                X_test.iat[0, index_to_replace] = last_ma
+                
             for ma in ma_features:
 
                 print(f"The previous 6 closing values were: {past_target_values[-ma+1:]}")

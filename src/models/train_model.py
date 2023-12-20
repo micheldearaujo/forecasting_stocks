@@ -4,6 +4,9 @@ sys.path.insert(0,'.')
 
 from src.utils import *
 from xgboost import plot_importance
+import warnings
+
+warnings.filterwarnings("ignore")
 
 logger = logging.getLogger("model-training")
 logger.setLevel(logging.DEBUG)
@@ -64,6 +67,7 @@ def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False
 
     fig2, axs2 = plt.subplots(figsize=(10, 4))
     plot_importance(model, ax=axs2, importance_type='gain')
+    plt.close()
     
 
     if display:
@@ -146,7 +150,7 @@ def train_pipeline():
                     stage='Production',
                 )
                 
-                logger.debug("Sucessfuly setup the new version as Production!") 
+                logger.debug("Successfuly setup the new version as Production!") 
 
             except IndexError:
 
