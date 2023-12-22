@@ -256,7 +256,7 @@ selenium==4.2.0
 semantic-version==2.10.0
 semver==2.13.0
 Send2Trash==1.8.0
-shap==0.41.0
+shap==0.44.0
 six==1.16.0
 skope-rules==1.0.1
 sktime==0.21.1
