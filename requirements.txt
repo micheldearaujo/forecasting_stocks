@@ -54,7 +54,7 @@ decorator==5.1.1
 defusedxml==0.7.1
 Deprecated==1.2.14
 deprecation==2.1.0
-dill==0.3.6
+dill
 distributed==2023.5.0
 docker==6.0.1
 dtreeviz==2.2.2
