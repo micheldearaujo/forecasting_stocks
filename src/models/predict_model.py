@@ -10,7 +10,6 @@ from src.models.model_utils import (
     make_predict
 )
 
-
 warnings.filterwarnings("ignore")
 logger = logging.getLogger("inference")
 logger.setLevel(logging.DEBUG)
