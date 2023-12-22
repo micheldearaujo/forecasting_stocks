@@ -171,8 +171,6 @@ def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list:
 
     # create the future dataframe with the specified number of days
     last_training_day = model_df.Date.max()
-    print("Last Training data:")
-    print(model_df.iloc[-1])
     date_list = [last_training_day + dt.timedelta(days=x+1) for x in range(forecast_horzion)]
     future_df = pd.DataFrame({"Date": date_list})
     
@@ -180,9 +178,7 @@ def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list:
     future_df["Stock"] = model_df.Stock.unique()[0]
 
     # build the features for the future dataframe using the specified features
-    # TODO: Aqui ficou hardcoded, depois generalizar para n variáveis "future unknowm"
-    inference_features_list = features_list[:-2]
-    logger.debug(f"Building the following features for out-of-sample inference: {inference_features_list}")
+    inference_features_list = [feature for feature in features_list if "MA" not in feature and "lag" not in feature]#features_list[:-2]
     future_df = build_features(future_df, inference_features_list, save=False)
 
     # filter out weekends from the future dataframe
@@ -192,10 +188,16 @@ def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list:
     future_df = future_df.reset_index(drop=True)
     
     # set the first lagged price value to the last price from the training data
-    future_df["Close_lag_1"] = 0
-    # TODO: Novamente, está hardcoded, precisa generalizar
-    future_df["Close_MA_7"] = 0
+    ma_and_lag_features = [feature for feature in features_list if feature not in inference_features_list]
+    for feature in ma_and_lag_features:
+        future_df[feature] = 0
+        if "lag" in feature:
+            lag_value = int(feature.split("_")[-1])
+            future_df.loc[future_df.index.min(), feature] = model_df['Close'].values[-lag_value]
+        else:
+            ma_value = int(feature.split("_")[-1])
+            future_df.loc[future_df.index.min(), feature] = model_df['Close'].rolling(ma_value).mean().values[-1]
     # set the first Moving Averages values
-    future_df.loc[future_df.index.min(), "Close_lag_1"] = model_df[model_df["Date"] == last_training_day]['Close'].values[0]
-    future_df.loc[future_df.index.min(), "Close_MA_7"] = model_df['Close'].rolling(7).mean().values[-1]
+    # future_df.loc[future_df.index.min(), "Close_lag_1"] = model_df[model_df["Date"] == last_training_day]['Close'].values[0]
+    # future_df.loc[future_df.index.min(), "CLOSE_MA_7"] = model_df['Close'].rolling(7).mean().values[-1]
     return future_df

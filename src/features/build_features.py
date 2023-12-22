@@ -30,7 +30,10 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
         stock_df_featurized['month'] = stock_df_featurized['Date'].apply(lambda x: float(x.month))
         stock_df_featurized['quarter'] = stock_df_featurized['Date'].apply(lambda x: float(x.quarter))
         stock_df_featurized['week'] = stock_df_featurized['Date'].apply(lambda x: float(x.week))
-        stock_df_featurized['Close'] = stock_df_featurized['Close'].apply(lambda x: round(x, 2))
+        try:
+            stock_df_featurized['Close'] = stock_df_featurized['Close'].apply(lambda x: round(x, 2))
+        except:
+            pass
         moving_averages_features = [feature for feature in features_list if "MA" in feature]
         for feature in moving_averages_features:
             ma_value = int(feature.split("_")[-1])
@@ -53,9 +56,9 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
         final_df_featurized.to_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), index=False)
 
     logger.debug("Features built successfully!")
-    print(final_df_featurized.tail())
-    print(f"Dataset shape: {final_df_featurized.shape}.")
-    print(f"Amount of ticker symbols: {final_df_featurized['Stock'].nunique()}.")
+    logger.debug(f"{final_df_featurized.tail()}")
+    logger.debug(f"Dataset shape: {final_df_featurized.shape}.")
+    logger.debug(f"Amount of ticker symbols: {final_df_featurized['Stock'].nunique()}.")
 
     return final_df_featurized
 

@@ -83,7 +83,7 @@ def test_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, st
                     index_to_replace = list(X_test.columns).index(feature)
                     X_test.iat[0, index_to_replace] = final_y.iloc[-lag_value]
 
-
+    
                 moving_averages_features = [feature for feature in X_test.columns if "MA" in feature]
                 for feature in moving_averages_features:
                     ma_value = int(feature.split("_")[-1])

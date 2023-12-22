@@ -77,7 +77,6 @@ def inference_pipeline():
 
         logger.debug("Creating the future dataframe...")
         future_df = make_future_df(model_config["FORECAST_HORIZON"], stock_df_feat, features_list)
-        #future_df = future_df.drop("Stock", axis=1)
         
         logger.debug("Predicting...")
         predictions_df = make_predict(
