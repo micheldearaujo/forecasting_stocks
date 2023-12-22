@@ -1,31 +1,31 @@
-name: Previsão de ações
-on: [push]
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.10.3
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.10.13
+# name: Previsão de ações
+# on: [push]
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+#     steps:
+#     - uses: actions/checkout@v2
+#     - name: Set up Python 3.10.3
+#       uses: actions/setup-python@v1
+#       with:
+#         python-version: 3.10.13
 
-    - name: Install dependencies
-      run: |
-        make install
+#     - name: Install dependencies
+#       run: |
+#         make install
 
-    - name: Lint
-      run: |
-        make lint
+#     - name: Lint
+#       run: |
+#         make lint
 
-    - name: Test
-      run: |
-        make test
+#     - name: Test
+#       run: |
+#         make test
         
-    - name: Format
-      run: |
-        make format
+#     - name: Format
+#       run: |
+#         make format
         
-    - name: Clean
-      run: |
-        make clean
+#     - name: Clean
+#       run: |
+#         make clean
