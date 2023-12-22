@@ -5,7 +5,7 @@ alembic==1.9.2
 altair==4.2.2
 ansi2html==1.8.0
 antlr4-python3-runtime==4.11.1
-anyio==3.6.2
+anyio==3.7.1
 appdirs==1.4.4
 argon2-cffi==21.3.0
 argon2-cffi-bindings==21.2.0
@@ -64,7 +64,7 @@ exceptiongroup==1.1.0
 executing==1.2.0
 explainerdashboard==0.4.3
 fairlearn==0.7.0
-fastapi==0.104.1
+fastapi==0.105.0
 fastjsonschema==2.16.2
 ffmpy==0.3.1
 filelock==3.13.1
