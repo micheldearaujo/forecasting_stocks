@@ -300,7 +300,7 @@ tsdownsample==0.1.2
 tune-sklearn==0.5.0
 typeguard==4.1.5
 types-PyYAML==6.0.12.12
-typing_extensions==4.4.0
+typing_extensions
 tzdata==2022.7
 tzlocal==4.2
 umap-learn==0.5.5
