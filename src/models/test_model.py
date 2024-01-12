@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 import sys
-sys.path.insert(0,'.')
+sys.path.insert(0, '.')
 
 from src.utils import *
+from src.config import xgboost_model_config
 from src.models.train_model import extract_learning_curves
 from src.models.model_utils import cd_pipeline
+import warnings
 
-logger = logging.getLogger("Model_Testing")
+warnings.filterwarnings("ignore")
+
+logger = logging.getLogger("model-testing")
 logger.setLevel(logging.INFO)
 
-
-
-def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, stock_name: str) -> pd.DataFrame:
+def test_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, stock_name: str) -> pd.DataFrame:
     """
     Make predictions for the past `forecast_horizon` days using a XGBoost model.
     This model is validated using One Shot Training, it means that we train the model
@@ -30,32 +32,24 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
     predictions = []
     actuals = []
     dates = []
+    X_testing_df = pd.DataFrame()
     
     # get the one-shot training set
-    X_train = X.iloc[:-forecast_horizon, :]
-    y_train = y.iloc[:-forecast_horizon]
-    
-    # --------- This Parameter loading is not WORKING!!! --------
-    # load the best model
-    # xgboost_model = load(f"./models/params/{stock_name}_params.joblib")
+    X_train = X.iloc[:-forecast_horizon+4, :]
+    y_train = y.iloc[:-forecast_horizon+4]
 
-    # get the best parameters
-    # parameters = xgboost_model.get_xgb_params()
-    parameters = {}
-    # parameters.pop("eval_metric")
-    # # ------------------------------------------------------------
+    final_y = y_train.copy()
 
-    # # start the mlflow tracking
-    mlflow.set_experiment(experiment_name="Testing_Models")
-    with mlflow.start_run(run_name=f"model_validation_{stock_name}") as run:
+    mlflow.set_experiment(experiment_name="model-testing")
+    with mlflow.start_run(run_name=f"xgboost_{stock_name}") as run:
 
         # fit the model again with the best parameters
         xgboost_model = xgb.XGBRegressor(
             eval_metric=["rmse", "logloss"],
-            #**parameters
+            **xgboost_model_config
         )
 
-        # train the model
+        logger.debug("Fitting the model...")
         xgboost_model.fit(
             X_train.drop("Date", axis=1),
             y_train,
@@ -79,19 +73,37 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
                 y_test = y.iloc[-day:]
 
             # only the first iteration will use the true value of Close_lag_1
-            # because the following ones will use the last predicted value as true value
+            # because the following ones will use the last predicted value
             # so we simulate the process of predicting out-of-sample
             if len(predictions) != 0:
                 
-                # we need to update the X_test["Close_lag_1"] value, because
-                # it should be equal to the last prediction (the "yesterday" value)
-                X_test.iat[0, -1] = predictions[-1]            
+                lag_features = [feature for feature in X_test.columns if "lag" in feature]
+                for feature in lag_features:
+                    lag_value = int(feature.split("_")[-1])
+                    index_to_replace = list(X_test.columns).index(feature)
+                    X_test.iat[0, index_to_replace] = final_y.iloc[-lag_value]
+
+    
+                moving_averages_features = [feature for feature in X_test.columns if "MA" in feature]
+                for feature in moving_averages_features:
+                    ma_value = int(feature.split("_")[-1])
+                    last_closing_princes_ma = final_y.rolling(ma_value).mean()
+                    last_ma = last_closing_princes_ma.values[-1]
+                    index_to_replace = list(X_test.columns).index(feature)
+                    X_test.iat[0, index_to_replace] = last_ma
+
+                X_testing_df = pd.concat([X_testing_df, X_test], axis=0)
 
             else:
+                # we jump the first iteration because we do not need to update anything.
+                X_testing_df = pd.concat([X_testing_df, X_test], axis=0)
+
                 pass
 
             # make prediction
             prediction = xgboost_model.predict(X_test.drop("Date", axis=1))
+            final_y = pd.concat([final_y, pd.Series(prediction[0])], axis=0)
+            final_y = final_y.reset_index(drop=True)
 
             # store the results
             predictions.append(prediction[0])
@@ -101,7 +113,7 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         pred_df = pd.DataFrame(list(zip(dates, actuals, predictions)), columns=["Date", 'Actual', 'Forecast'])
         pred_df["Forecast"] = pred_df["Forecast"].astype("float64")
 
-        # Calculate the resulting metric
+        logger.debug("Calculating the evaluation metrics...")
         model_mape = round(mean_absolute_percentage_error(actuals, predictions), 4)
         model_rmse = round(np.sqrt(mean_squared_error(actuals, predictions)), 2)
         model_mae = round(mean_absolute_error(actuals, predictions), 2)
@@ -114,15 +126,17 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         pred_df["Model"] = str(type(xgboost_model)).split('.')[-1][:-2]
 
         # Plotting the Validation Results
-        fig = visualize_validation_results(pred_df, model_mape, model_mae, model_wape, stock_name)
+        validation_metrics_fig = visualize_validation_results(pred_df, model_mape, model_mae, model_wape, stock_name)
 
         # Plotting the Learning Results
-        fig2 = extract_learning_curves(xgboost_model)
+        learning_curves_fig, feat_imp = extract_learning_curves(xgboost_model, display=False)
 
         # ---- logging ----
         logger.debug("Logging the results to MLFlow")
-        # log the parameters
+        parameters = xgboost_model.get_xgb_params()
+        #parameters = xgboost_model_config
         mlflow.log_params(parameters)
+        mlflow.log_param("features", list(X_test.columns))
 
         # log the metrics
         mlflow.log_metric("MAPE", model_mape)
@@ -131,8 +145,9 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         mlflow.log_metric("WAPE", model_wape)
 
         # log the figure
-        mlflow.log_figure(fig, "validation_results.png")
-        mlflow.log_figure(fig2, "learning_curves.png")
+        mlflow.log_figure(validation_metrics_fig, "validation_results.png")
+        mlflow.log_figure(learning_curves_fig, "learning_curves.png")
+        mlflow.log_figure(feat_imp, "feature_importance.png")
 
         # get model signature
         model_signature = infer_signature(X_train, pd.DataFrame(y_train))
@@ -149,10 +164,10 @@ def validade_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int
         #cd_pipeline(run.info, y_train, pred_df, model_mape, stock_name)
 
     
-    return pred_df
+    return pred_df, X_testing_df
 
 
-def model_validation_pipeline():
+def model_testing_pipeline():
 
     logger.debug("Loading the featurized dataset..")
     stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
@@ -161,12 +176,11 @@ def model_validation_pipeline():
     validation_report_df = pd.DataFrame()
 
     for stock_name in stock_df_feat_all["Stock"].unique():
-        logger.info("Validating the model for the stock: %s"%stock_name)
 
-        # filter the stock and drop the stock column
+        logger.info("Testing the model for the stock: %s..."%stock_name)
         stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].copy().drop("Stock", axis=1)
         
-        predictions_df = validade_model_one_shot(
+        predictions_df, X_testing_df = test_model_one_shot(
             X=stock_df_feat.drop([model_config["TARGET_NAME"]], axis=1),
             y=stock_df_feat[model_config["TARGET_NAME"]],
             forecast_horizon=model_config['FORECAST_HORIZON'],
@@ -176,19 +190,19 @@ def model_validation_pipeline():
         predictions_df["Stock"] = stock_name
         predictions_df["Training_Date"] = dt.datetime.today().date()
 
-
         validation_report_df = pd.concat([validation_report_df, predictions_df], axis=0)
     
-    # export the validation dataframe
+    logger.debug("Writing the testing results dataframe...")
     validation_report_df = validation_report_df.rename(columns={"Forecast": "Price"})
-    validation_report_df["Class"] = "Validation"
+    validation_report_df["Class"] = "Testing"
+
     validation_report_df.to_csv(os.path.join(OUTPUT_DATA_PATH, 'validation_stock_prices.csv'), index=False)
 
 # Execute the whole pipeline
 
 if __name__ == "__main__":
-    logger.info("Starting the Model Evaluation pipeline..")
+    logger.info("Starting the Model Testing pipeline...")
 
-    model_validation_pipeline()
+    model_testing_pipeline()
     
-    logger.info("Model Evaluation Pipeline was sucessful!")
+    logger.info("Model Testing Pipeline was sucessful!")

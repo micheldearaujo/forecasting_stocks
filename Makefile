@@ -2,18 +2,6 @@ install:
 	pip install --upgrade pip &&\
 		pip install -r requirements.txt
 
-install-gcp:
-	pip install --upgrade pip &&\
-		pip install -r requirements-gcp.txt
-
-install-azure:
-	pip install --upgrade pip &&\
-		pip install -r requirements-azure.txt
-		
-install-aws:
-	pip install --upgrade pip &&\
-		pip install -r requirements-aws.txt
-
 dataset:
 	python -m src/data/make_dataset.py
 	python -m src/features/build_features.py

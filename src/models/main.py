@@ -5,9 +5,9 @@ from src.utils import *
 from src.features.build_features import build_features
 from src.data.make_dataset import make_dataset
 from src.models.train_model import train_pipeline
-from src.models.predict_model import predict_pipeline
+from src.models.predict_model import inference_pipeline
 from src.models.hyperparam_tune import hyperopt_tune_pipeline
-from src.models.test_model import model_validation_pipeline
+from src.models.test_model import model_testing_pipeline
 from src.models.app import front_end
 
 def execute_full_pipeline():
@@ -41,11 +41,11 @@ def execute_full_pipeline():
 
     # execute the model testing pipeline
     logger.info("Executing the model training pipeline..\n")
-    model_validation_pipeline()
+    model_testing_pipeline()
     
     # execute the model inference pipeline
     logger.info("Executing the model inference pipeline..\n")
-    predict_pipeline()
+    inference_pipeline()
     
     logger.info("Full pipeline executed sucessfully!")
 

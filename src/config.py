@@ -45,8 +45,6 @@ from mlflow.models.signature import infer_signature
 from mlflow import MlflowClient
 
 
-
-
 plt.style.use("fivethirtyeight")
 
 # Define dates to start and end
@@ -64,19 +62,20 @@ model_config = {
     "MODEL_NAME": "xgboost_model",
 }
 
-features_list = ["day_of_month", "month", "quarter", "Close_lag_1"]
+features_list = ["day_of_month", "month", "quarter", "week", "CLOSE_MA_3", "Close_lag_1"]
 
 # Define a ação para procurar
-PERIOD = '2600d'
+PERIOD = '3600d'
 INTERVAL = '1d'
 STOCK_NAME = 'BOVA11.SA'
-stocks_list = ["BOVA11.SA", "BCFF11.SA", "MXRF11.SA", "HGLG11.SA", "XPLG11.SA", "HGRU11.SA"]
+stocks_list = ["BOVA11.SA", "BCFF11.SA", "MXRF11.SA", "HGLG11.SA", "XPLG11.SA", "HGRU11.SA", "ITSA4.SA", "TAEE3.SA",
+               "FLRY3.SA", "VALE3.SA", "RAIZ4.SA", "SANB4.SA"]
 
 # Configura o logging
 log_format = "[%(name)s][%(levelname)-6s] %(message)s"
 logging.basicConfig(format=log_format)
-logger = logging.getLogger("Functions")
-logger.setLevel(logging.INFO)
+logger = logging.getLogger("utililies")
+logger.setLevel(logging.DEBUG)
 
 # paths
 ROOT_DATA_PATH = "./data"
@@ -89,7 +88,7 @@ MODELS_PATH = "./models"
 param_grid = {
     "n_estimators": [40, 100, 300],
     "max_depth": [3, 5, 7, 9],
-    "learning_rate": [0.2, 0.3, 0.1, 0.01, 0.001],
+    "learning_rate": [0.2, 0.3, 0.1, 0.01],
     "subsample": [0.8, 1.0],
     "colsample_bytree": [1.0],
     "gamma": [0.1, 0.25, 0.5, 1.0],
@@ -98,17 +97,15 @@ param_grid = {
 }
 
 xgboost_model_config = {
-    'LEARNING_RATE': 0.01,
-    'MAX_DEPTH': 100,
-    'MIN_DATA': 100,
-    'N_ESTIMATORS': 1000,
-    'REG_LAMBDA': 100,
-    'SCALE_POS_WEIGHT': 10,
-    'SEED': 42,
-    'SUBSAMPLE': 0.9,
-    'COLSAMPLE_BYTREE': 0.9,
-    'NUM_BOOST_ROUNDS': 200,
-    'GAMMA': 0.01
+    # 'learning_rate': 0.01,
+    'max_depth': 11,
+    'n_estimators': 40,
+    # 'reg_lambda': 10,
+    # 'scale_pos_weight': 10,
+    # 'seed': 42,
+    # 'subsample': 1.0,
+    'colsample_bytree': 1.0,
+    # 'gamma': 0.01
 }
 
 xgboost_fixed_model_config = {

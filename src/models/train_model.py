@@ -3,48 +3,25 @@ import sys
 sys.path.insert(0,'.')
 
 from src.utils import *
+from xgboost import plot_importance
+import warnings
 
-logger = logging.getLogger("Model_Training")
-logger.setLevel(logging.INFO)
+warnings.filterwarnings("ignore")
 
-
-def load_production_model_params(client: mlflow.tracking.client.MlflowClient, stock_name: str) -> tuple:
-    """
-    This function loads the production model
-    in order to get it's parameters.
-
-    ---- Don't know if it is working!! ----
-    """
-
-    # create empty list to store model versions
-    models_versions = []
-
-    # search for model versions
-    for mv in client.search_model_versions("name='{}_{}'".format(model_config['REGISTER_MODEL_NAME_VAL'], stock_name)):
-        models_versions.append(dict(mv))
-
-    # get the prod model
-    current_prod_model = [x for x in models_versions if x['current_stage'] == 'Production'][0]
-    prod_validation_model_params = mlflow.get_run(current_prod_model['run_id']).data.params
-
-    # Create a new dictionary to store only the != None Parameters based on a configuration dictionary
-    prod_validation_model_params_new = {k: v for k, v in prod_validation_model_params.items() if k in xgboost_hyperparameter_config.keys()}
-
-    return prod_validation_model_params_new, current_prod_model
+logger = logging.getLogger("model-training")
+logger.setLevel(logging.DEBUG)
         
 
-def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, params: dict, stock_name: str) -> xgb.sklearn.XGBRegressor:
+def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, stock_name: str) -> xgb.sklearn.XGBRegressor:
     """
     Trains the XGBoost model with the full dataset to perform out-of-sample inference.
-
-    --- This function is not using the production Parmeters and is not saving the model into MLFlow --
-    ------- FIGURE OUT WHY ------
     """
     
     # use existing params
     xgboost_model = xgb.XGBRegressor(
         eval_metric=["rmse", "logloss"],
-        #**params
+        n_estimators=40,
+        max_depth=11
     )
 
     # train the model
@@ -54,9 +31,6 @@ def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, params: dict
         eval_set=[(X_train, y_train)],
         verbose=0
     )
-
-    # save as joblib
-    dump(xgboost_model, f"./models/{stock_name}_{dt.datetime.today().date()}.joblib")
 
     return xgboost_model
 
@@ -77,7 +51,7 @@ def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False
     # extract the learning curves
     learning_results = model.evals_result()
 
-    fig, axs = plt.subplots(1, 2, figsize=(12, 5))
+    fig, axs = plt.subplots(1, 2, figsize=(10, 4))
     plt.suptitle("XGBoost Learning Curves")
     axs[0].plot(learning_results['validation_0']['rmse'], label='Training')
     axs[0].set_title("RMSE Metric")
@@ -91,10 +65,16 @@ def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False
     axs[1].set_xlabel("Iterations")
     axs[1].legend()
 
+    fig2, axs2 = plt.subplots(figsize=(10, 4))
+    plot_importance(model, ax=axs2, importance_type='gain')
+    plt.close()
+    
+
     if display:
         plt.show()
+        
     
-    return fig
+    return fig, fig2
 
 
 def train_pipeline():
@@ -108,54 +88,43 @@ def train_pipeline():
 
         stock_df_feat = stock_df_feat_all[stock_df_feat_all["Stock"] == stock_name].drop("Stock", axis=1).copy()
 
-        #logger.debug(f"Creating training dataset for stock {stock_name}..")
-        logger.debug("Creating training dataset for stock %s..."%stock_name)
-        
+        logger.info("Creating training dataset for stock %s..."%stock_name)
         X_train=stock_df_feat.drop([model_config["TARGET_NAME"], "Date"], axis=1)
         y_train=stock_df_feat[model_config["TARGET_NAME"]]
 
-        # load the production model parameters
-        logger.debug("Loading the production model parameters..")
-
-        #prod_validation_model_params, current_prod_model = load_production_model_params(client, stock_name)
-        prod_validation_model_params = {}
-
         mlflow.set_experiment(experiment_name="Training_Inference_Models")
-        
         with mlflow.start_run(run_name=f"model_inference_{stock_name}") as run:
 
             logger.debug("Training the model..")
-            xgboost_model = train_inference_model(X_train, y_train, prod_validation_model_params, stock_name)
+            xgboost_model = train_inference_model(X_train, y_train, stock_name)
 
             logger.debug("Plotting the learning curves..")
-            fig = extract_learning_curves(xgboost_model)
+            learning_curves_fig , feat_importance_fig = extract_learning_curves(xgboost_model)
 
             logger.debug("Logging the results..")
-            # log the parameters
-            mlflow.log_params(prod_validation_model_params)
-            mlflow.log_figure(fig, f"learning_curves_{stock_name}.png")
+            mlflow.log_params(xgboost_model.get_xgb_params())
+            mlflow.log_figure(learning_curves_fig, f"learning_curves_{stock_name}.png")
 
-            # get model signature
+            logger.debug(f"Logging the model to MLflow...")
             model_signature = infer_signature(X_train, pd.DataFrame(y_train))
-
-            # log the model to mlflow
             mlflow.xgboost.log_model(
                 xgb_model=xgboost_model,
                 artifact_path=f"{model_config['MODEL_NAME']}_{stock_name}",
                 input_example=X_train.head(),
                 signature=model_signature
             )
+            logger.debug(f"artifact path: {model_config['MODEL_NAME']}_{stock_name}")
 
             # register the model
-            logger.debug("Registering the model...")
+            logger.debug("Registering the model to MLflow...")
+            logger.debug(f"Model registration URI: runs:/{run.info.run_id}/{run.info.run_name}")
+            logger.debug(f"run_name: model_inference_{stock_name}")
             model_details = mlflow.register_model(
                 model_uri = f"runs:/{run.info.run_id}/{run.info.run_name}",
                 name = f"{model_config[f'REGISTER_MODEL_NAME_INF']}_{stock_name}"
             )
-
-            logger.debug("Loading the current Inference Production model...")
-
-            # Need to load the current prod inference model now, to archive it
+            
+            logger.info(f"Transitioning model versions...")
             models_versions = []
 
             for mv in client.search_model_versions("name='{}_{}'".format(model_config[f'REGISTER_MODEL_NAME_INF'], stock_name)):
@@ -163,6 +132,8 @@ def train_pipeline():
 
             # Check if there is production model
             try:
+                logger.debug("Previous model version found. Transitioning the old version to Archived...") 
+
                 current_prod_inf_model = [x for x in models_versions if x['current_stage'] == 'Production'][0]
 
                 # Archive the previous version
@@ -178,19 +149,14 @@ def train_pipeline():
                     version=model_details.version,
                     stage='Production',
                 )
-
-                # give model version a description
-                # client.update_model_version(
-                #     name=f"{model_config['REGISTER_MODEL_NAME_INF']}_{stock_name}",
-                #     version=model_details.version,
-                #     description=f"""This is the inference model for stock {STOCK_NAME}, trained based on the Hyperparameters
-                #     from the validation model version {current_prod_model['version']} \
-                #     in Production."""
-                # )
+                
+                logger.debug("Successfuly setup the new version as Production!") 
 
             except IndexError:
 
                 # just set the new model as production
+                logger.debug("No Previous model version found. Transitioning this version to Archived...") 
+
                 client.transition_model_version_stage(
                     name=f"{model_config['REGISTER_MODEL_NAME_INF']}_{stock_name}",
                     version=model_details.version,
@@ -200,7 +166,7 @@ def train_pipeline():
 
 # Execute the whole pipeline
 if __name__ == "__main__":
-    logger.info("\nStarting the training pipeline...\n")
+    logger.info("Starting the training pipeline...")
 
     train_pipeline()
 

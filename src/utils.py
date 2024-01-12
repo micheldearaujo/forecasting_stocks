@@ -54,7 +54,7 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
 
     logger.info("Vizualizing the results...")
 
-    fig, axs = plt.subplots(figsize=(12, 5))
+    fig, axs = plt.subplots(figsize=(10, 4))
     # Plot the Actuals
     sns.lineplot(
         data=pred_df,
@@ -178,7 +178,7 @@ def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list:
     future_df["Stock"] = model_df.Stock.unique()[0]
 
     # build the features for the future dataframe using the specified features
-    inference_features_list = features_list[:-1]
+    inference_features_list = [feature for feature in features_list if "MA" not in feature and "lag" not in feature]#features_list[:-2]
     future_df = build_features(future_df, inference_features_list, save=False)
 
     # filter out weekends from the future dataframe
@@ -188,6 +188,16 @@ def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list:
     future_df = future_df.reset_index(drop=True)
     
     # set the first lagged price value to the last price from the training data
-    future_df["Close_lag_1"] = 0
-    future_df.loc[future_df.index.min(), "Close_lag_1"] = model_df[model_df["Date"] == last_training_day]['Close'].values[0]
+    ma_and_lag_features = [feature for feature in features_list if feature not in inference_features_list]
+    for feature in ma_and_lag_features:
+        future_df[feature] = 0
+        if "lag" in feature:
+            lag_value = int(feature.split("_")[-1])
+            future_df.loc[future_df.index.min(), feature] = model_df['Close'].values[-lag_value]
+        else:
+            ma_value = int(feature.split("_")[-1])
+            future_df.loc[future_df.index.min(), feature] = model_df['Close'].rolling(ma_value).mean().values[-1]
+    # set the first Moving Averages values
+    # future_df.loc[future_df.index.min(), "Close_lag_1"] = model_df[model_df["Date"] == last_training_day]['Close'].values[0]
+    # future_df.loc[future_df.index.min(), "CLOSE_MA_7"] = model_df['Close'].rolling(7).mean().values[-1]
     return future_df
