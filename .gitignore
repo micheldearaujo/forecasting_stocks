@@ -27,7 +27,7 @@ var/
 mlruns/
 
 # reports and figures
-reports/
+reports/figures/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
