@@ -62,7 +62,7 @@ model_config = {
     "MODEL_NAME": "xgboost_model",
 }
 
-features_list = ["day_of_month", "month", "quarter", "week", "CLOSE_MA_3", "CLOSE_MA_7", "CLOSE_MA_21", "Close_lag_1", "Close_lag_3", "Close_lag_7"]
+features_list = ["day_of_month", "month", "quarter", "week", "CLOSE_MA_3", "Close_lag_1"]
 
 # Define a ação para procurar
 PERIOD = '3600d'

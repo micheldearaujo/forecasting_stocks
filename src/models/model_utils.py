@@ -153,31 +153,33 @@ def make_predict(model, forecast_horizon: int, future_df: pd.DataFrame, past_tar
     for day in range(0, forecast_horizon):
 
         # extract the next day to predict
-        logger.debug("The total featurized df:")
-
         x_inference = pd.DataFrame(future_df_feat.drop(columns=["Date", "Stock"]).loc[day, :]).transpose()
-
         prediction = model.predict(x_inference)[0]
         predictions.append(prediction)
+        all_features = future_df_feat.columns
+
+        # Append the prediction to the last_closing_prices
+        past_target_values.append(prediction)
 
         # get the prediction and input as the lag 1
         if day != forecast_horizon-1:
             
             # Replace the "tomorrow" lag 1 feature with today's prediction
-            future_df_feat.loc[day+1, "Close_lag_1"] = prediction
+            #future_df_feat.loc[day+1, "Close_lag_1"] = prediction
             # Replace the "tomorrow" MA feature with today's calculation
-            # TODO: Generalizar isso
-            ma_features = [7]
-
-            for ma in ma_features:
-
-                print(f"The previous 6 closing values were: {past_target_values[-ma+1:]}")
-                last_n_closing_prices = [*past_target_values[-ma+1:], prediction]
-                next_ma_value = np.mean(last_n_closing_prices)
-                future_df_feat.loc[day+1, f"Close_MA_{ma}"] = next_ma_value
             
-            # Append the prediction to the last_closing_prices
-            past_target_values.append(prediction)
+            lag_features = [feature for feature in all_features if "lag" in feature]
+            for feature in lag_features:
+                lag_value = int(feature.split("_")[-1])
+                future_df_feat.loc[day+1, feature] = past_target_values[-lag_value]
+
+            
+            moving_averages_features = [feature for feature in all_features if "MA" in feature]
+            for feature in moving_averages_features:
+                ma_value = int(feature.split("_")[-1])
+                last_n_closing_prices = [*past_target_values[-ma_value+1:], prediction]
+                next_ma_value = np.mean(last_n_closing_prices)
+                future_df_feat.loc[day+1, feature] = next_ma_value
 
         else:
             # check if it is the last day, so we stop
