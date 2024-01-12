@@ -3,7 +3,7 @@ sys.path.insert(0,'.')
 
 from src.utils import *
 from csv import writer
-from algo_trading import Trader
+from src.models.algo_trading import Trader
 import plotly.graph_objects as go
 
 

@@ -56,7 +56,7 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
         final_df_featurized.to_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), index=False)
 
     logger.debug("Features built successfully!")
-    logger.debug(f"{final_df_featurized.tail()}")
+    logger.debug(f"\n{final_df_featurized.tail()}")
     logger.debug(f"Dataset shape: {final_df_featurized.shape}.")
     logger.debug(f"Amount of ticker symbols: {final_df_featurized['Stock'].nunique()}.")
 

@@ -34,8 +34,6 @@ def load_production_model(logger, model_config, stock_name):
         current_model_path = re.search(r'mlruns.*/model', current_model_path)
         current_model_path = current_model_path.group()
 
-        # TODO: Corrigir esse xgboost_model aqui, pois pode ser qualquer modelo
-        # Sugestão: 'xgboost_model_' vira "best_model"
         current_model_path = current_model_path[:-5] + 'xgboost_model_' + stock_name
         logger.debug(f"Loading model from path: \n{current_model_path}")
         current_prod_model = mlflow.xgboost.load_model(model_uri='./'+current_model_path)
