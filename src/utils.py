@@ -8,8 +8,6 @@ import sys
 sys.path.insert(0,'.')
 
 from src.config import *
-from src.features.build_features import build_features
-
 
 
 def ts_train_test_split(data: pd.DataFrame, target:str, test_size: int):

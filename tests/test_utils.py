@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 
 from src.utils import *
 from src.models.model_utils import *
-from src.features.build_features import build_features
+from src.features.feat_eng import build_features
 from src.data.make_dataset import make_dataset
 from src.models.train_model import *
 from src.models.hyperparam_tune import optimize_model_params, stepwise_forecasting

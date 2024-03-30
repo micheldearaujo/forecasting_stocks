@@ -134,7 +134,7 @@ def test_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, st
         # ---- logging ----
         logger.debug("Logging the results to MLFlow")
         parameters = xgboost_model.get_xgb_params()
-        #parameters = xgboost_model_config
+
         mlflow.log_params(parameters)
         mlflow.log_param("features", list(X_test.columns))
 
@@ -198,8 +198,8 @@ def model_testing_pipeline():
 
     validation_report_df.to_csv(os.path.join(OUTPUT_DATA_PATH, 'validation_stock_prices.csv'), index=False)
 
-# Execute the whole pipeline
 
+# Execute the whole pipeline
 if __name__ == "__main__":
     logger.info("Starting the Model Testing pipeline...")
 
