@@ -1,20 +1,38 @@
 
 [![Previsão de ações](https://github.com/micheldearaujo/forecasting_stocks/actions/workflows/main.yml/badge.svg)](https://github.com/micheldearaujo/forecasting_stocks/actions/workflows/main.yml)
 
-# Previsão de preço de ações
+# Stock prices forecasting & Algo Trading
 
-O objetivo deste projeto é criar um modelo prescritivo com o objetivo de informar qual é o melhor dia para comprar ou vender ações baseado em parâmetros setados pelo usuário.
+The objective of this project is to create a prescriptive model with the aim of informing the user about the best timing to buy or sell stocks based on parameters set by the user.
 
-O produto é baseado em um modelo de Forecasting (inicialmente XGBoost, modelos ainda em construção) que irá prevê o preço de ações (a escolha do usuário) para os próximos 10 dias úteis, e partir desses valores irá realizar recomendações de compra ou venda, baseado em estratégias (to be defined).
+The product is based on a Forecasting model that will predict the stock price (user's choice) for the next 10 business days. Based on these values it will make recommendations for buying or selling, based on strategies (simple crossing of moving averages).
+
+![alt text](https://github.com/micheldearaujo/forecasting_stocks/blob/main/reports/home_page.png)
+
 ## Authors
-
 - [@micheldearaujo](https://github.com/micheldearaujo/forecasting_stocks)
 - [Linkedin](https://www.linkedin.com/in/michel-de-ara%C3%BAjo-947377197/)
 
 
+## Features
+This project is composed by the main features:
+
+- Mutable list of ticker symbols. You can add how many ticker symbols you want. Just make sure they follow the Yahoo Finance naming standard.
+- Forecasting of each ticker symbol using XGBoost (adding more models is WIP). The features are:
+  - Time known features: day, month, year, quarter, week
+  - Moving average features. 3 days moving averages default, but you can add how many you want
+  - Lag features. Lag 1 default, but you can add how many you want.
+- Model testing in the last 10 business days.
+- Simple trading algorithm based on crossing of moving averages.
+- Front-end page where you can change the timeframe, colors and moving averages of the trading algorithm.
+
+
+### MLflow tracking
+This project uses the MLflow library to perform model registry and experiment tracking. Altough this is returning some errors with Github Actions, I will continue to use that for I consider model tracking and registry such a important step in any Data Science project.
+
 ## Installation
 
-Para instalar o projeto localmente
+Use the following code to install the project locally:
 
 ```bash
   git clone https://github.com/micheldearaujo/forecasting_stocks.git
@@ -22,16 +40,29 @@ Para instalar o projeto localmente
   python3 -m venv forecasting_stocks
   source forecasting_stocks/bin/activate
   make install
-  make test
-  make lint
 ```
+
 ## Usage/Examples
 
-![alt text](https://github.com/micheldearaujo/forecasting_stocks/blob/main/reports/usage.jpeg)
+After installing the project, all one need to do is to run the data pipeline:
 
 ```python
+# Data pipeline
+  python3 src/data/make_dataset.py
+  python3 src/features/build_features.py
+```
+
+Then, just run the modeling pipeline
+```python
   python3 src/models/train_model.py
+  python3 src/models/test_model.py
   python3 src/models/predict_model.py
   streamlit run src/models/app.py
-
 ```
+
+Last but not least, launch the Streamlit interface:
+```bash
+  streamlit run src/app/app.py
+```
+
+![alt text](https://github.com/micheldearaujo/forecasting_stocks/blob/main/reports/trade_page.png)

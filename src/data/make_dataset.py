@@ -22,7 +22,7 @@ def make_dataset(stock_name: str, period: str, interval: str) -> pd.DataFrame:
     empty_df = pd.DataFrame()
     
     for stock_name in stocks_list:
-        logger.debug(f"Download data for Ticker: {stock_name}...")
+        logger.debug(f"Downloading data for Ticker: {stock_name}...")
         stock_price_df = yfin.Ticker(stock_name).history(period=period, interval=interval)
         stock_price_df['Stock'] = stock_name
         stock_price_df = stock_price_df[['Stock', 'Close']]

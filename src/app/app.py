@@ -30,8 +30,8 @@ def front_end():
 
     STOCK_NAME = st.sidebar.selectbox(
         "Which stock do you want to track?",
-        ("BOVA11.SA", "BCFF11.SA", "MXRF11.SA", "HGLG11.SA", "XPLG11.SA", "HGRU11.SA", "ITSA4.SA", "TAEE3.SA",
-               "FLRY3.SA", "VALE3.SA")
+        ("BOVA11.SA", "BCFF11.SA", "MXRF11.SA", "HGLG11.SA", "ITSA4.SA", "TAEE4.SA",
+               "FLRY3.SA", "VALE3.SA", "RAIZ4.SA", "SANB4.SA", "EGIE3.SA", "BBSE3.SA", "CSMG3.SA", "PETR4.SA")
     )
 
     # get the historical starting date
@@ -52,6 +52,7 @@ def front_end():
         st.sidebar.error("This value is not an integer. Amount of day for the lower moving average:")
 
     ma_2 = st.sidebar.text_input("Amount of day for the higher moving average:", 15)
+
     try:
         ma_2 = int(ma_2)
     except:
@@ -114,8 +115,6 @@ def front_end():
         title=f"{model_config['FORECAST_HORIZON']-4} days Forecast for {STOCK_NAME}",
         color_discrete_map={'Forecast': forecast_color, 'Historical': historical_color, 'Testing': validation_color}
     )
-
-    
 
     # # plot it
     st.plotly_chart(

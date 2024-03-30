@@ -68,8 +68,8 @@ features_list = ["day_of_month", "month", "quarter", "week", "CLOSE_MA_3", "Clos
 PERIOD = '3600d'
 INTERVAL = '1d'
 STOCK_NAME = 'BOVA11.SA'
-stocks_list = ["BOVA11.SA", "BCFF11.SA", "MXRF11.SA", "HGLG11.SA", "XPLG11.SA", "HGRU11.SA", "ITSA4.SA", "TAEE3.SA",
-               "FLRY3.SA", "VALE3.SA", "RAIZ4.SA", "SANB4.SA"]
+stocks_list = ["BOVA11.SA", "BCFF11.SA", "MXRF11.SA", "HGLG11.SA", "ITSA4.SA", "TAEE4.SA",
+               "FLRY3.SA", "VALE3.SA", "RAIZ4.SA", "SANB4.SA", "EGIE3.SA", "BBSE3.SA", "CSMG3.SA", "PETR4.SA"]
 
 # Configura o logging
 log_format = "[%(name)s][%(levelname)-6s] %(message)s"
