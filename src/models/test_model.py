@@ -3,9 +3,11 @@ import sys
 sys.path.insert(0, '.')
 
 from src.utils import *
-from src.config import xgboost_model_config
+from src.config import param_distributions_dict
 from src.models.train_model import extract_learning_curves
 from src.models.model_utils import cd_pipeline
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.metrics import make_scorer, mean_squared_error
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -13,7 +15,50 @@ warnings.filterwarnings("ignore")
 logger = logging.getLogger("model-testing")
 logger.setLevel(logging.INFO)
 
-def test_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, stock_name: str) -> pd.DataFrame:
+
+
+def tune_model_hyperparameters(model, X_train, y_train, param_distributions, n_iter=500, cv=5, scoring=None):
+    """
+    Tune model hyperparameters using RandomizedSearchCV.
+    
+    Parameters:
+    - model: The machine learning model to tune.
+    - X_train: Training features.
+    - y_train: Training target variable.
+    - param_distributions: Dictionary with parameters names (`str`) as keys and distributions
+                           or lists of parameters to try.
+    - n_iter: Number of parameter settings that are sampled. n_iter trades off runtime vs quality of the solution.
+    - cv: Cross-validation splitting strategy.
+    - scoring: A single string or callable to evaluate the predictions on the test set. If None, the model's default scorer is used.
+    
+    Returns:
+    - best_model: The tuned model with the best parameters.
+    - results: The results of the RandomizedSearchCV.
+    """
+    
+    # If no custom scoring function is provided, use mean squared error
+    if scoring is None:
+        scoring = make_scorer(mean_squared_error, greater_is_better=False)
+
+    random_search = RandomizedSearchCV(model, param_distributions=param_distributions,
+                                        n_iter=n_iter, cv=cv, scoring=scoring, verbose=1, n_jobs=-1, random_state=42)
+    
+    # Fit RandomizedSearchCV
+    random_search.fit(X_train, y_train)
+    
+    # Best model
+    best_model = random_search.best_estimator_
+    
+    # Results
+    results = {
+        'Best Parameters': random_search.best_params_,
+        'Best Score': random_search.best_score_
+    }
+    
+    return best_model, results
+
+
+def test_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, stock_name: str, tunning: bool = False) -> pd.DataFrame:
     """
     Make predictions for the past `forecast_horizon` days using a XGBoost model.
     This model is validated using One Shot Training, it means that we train the model
@@ -35,32 +80,38 @@ def test_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, st
     X_testing_df = pd.DataFrame()
     
     # get the one-shot training set
-    X_train = X.iloc[:-forecast_horizon+4, :]
-    y_train = y.iloc[:-forecast_horizon+4]
+    X_train = X.iloc[:-forecast_horizon+2, :]
+    y_train = y.iloc[:-forecast_horizon+2]
 
     final_y = y_train.copy()
 
     mlflow.set_experiment(experiment_name="model-testing")
     with mlflow.start_run(run_name=f"xgboost_{stock_name}") as run:
 
-        # fit the model again with the best parameters
-        xgboost_model = xgb.XGBRegressor(
-            eval_metric=["rmse", "logloss"],
-            **xgboost_model_config
+
+        best_model = xgb.XGBRegressor(
+                eval_metric=["rmse", "logloss"],
         )
 
-        logger.debug("Fitting the model...")
-        xgboost_model.fit(
-            X_train.drop("Date", axis=1),
-            y_train,
-            eval_set=[(X_train.drop("Date", axis=1), y_train)],
-            verbose=0
-        )
+        if tunning:
+            logger.debug("HyperTunning the model...")
+
+            best_model, results = tune_model_hyperparameters(best_model, X_train.drop(columns=["Date"]), y_train, param_distributions_dict[str(type(best_model)).split('.')[-1][:-2]], cv=5)
+
+        else:
+
+            logger.debug("Fitting the model without HyperTunning...")
+            best_model.fit(
+                X_train.drop("Date", axis=1),
+                y_train,
+                eval_set=[(X_train.drop("Date", axis=1), y_train)],
+                verbose=0
+            )
 
         # Iterate over the dataset to perform predictions over the forecast horizon, one by one.
         # After forecasting the next step, we need to update the "lag" features with the last forecasted
         # value
-        for day in range(forecast_horizon-4, 0, -1):
+        for day in range(forecast_horizon-2, 0, -1):
             
             if day != 1:
                 # the testing set will be the next day after the training and we use the complete dataset
@@ -101,7 +152,7 @@ def test_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, st
                 pass
 
             # make prediction
-            prediction = xgboost_model.predict(X_test.drop("Date", axis=1))
+            prediction = best_model.predict(X_test.drop("Date", axis=1))
             final_y = pd.concat([final_y, pd.Series(prediction[0])], axis=0)
             final_y = final_y.reset_index(drop=True)
 
@@ -123,17 +174,17 @@ def test_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, st
         pred_df["MAE"] = model_mae
         pred_df["WAPE"] = model_wape
         pred_df["RMSE"] = model_rmse
-        pred_df["Model"] = str(type(xgboost_model)).split('.')[-1][:-2]
+        pred_df["Model"] = str(type(best_model)).split('.')[-1][:-2]
 
         # Plotting the Validation Results
         validation_metrics_fig = visualize_validation_results(pred_df, model_mape, model_mae, model_wape, stock_name)
 
         # Plotting the Learning Results
-        learning_curves_fig, feat_imp = extract_learning_curves(xgboost_model, display=False)
+        #learning_curves_fig, feat_imp = extract_learning_curves(best_model, display=True)
 
         # ---- logging ----
         logger.debug("Logging the results to MLFlow")
-        parameters = xgboost_model.get_xgb_params()
+        parameters = best_model.get_xgb_params()
 
         mlflow.log_params(parameters)
         mlflow.log_param("features", list(X_test.columns))
@@ -146,16 +197,16 @@ def test_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, st
 
         # log the figure
         mlflow.log_figure(validation_metrics_fig, "validation_results.png")
-        mlflow.log_figure(learning_curves_fig, "learning_curves.png")
-        mlflow.log_figure(feat_imp, "feature_importance.png")
+        #mlflow.log_figure(learning_curves_fig, "learning_curves.png")
+        #mlflow.log_figure(feat_imp, "feature_importance.png")
 
         # get model signature
         model_signature = infer_signature(X_train, pd.DataFrame(y_train))
 
         # log the model to mlflow
         mlflow.xgboost.log_model(
-            xgb_model=xgboost_model,
-            artifact_path=f"xgboost_model_{stock_name}",
+            xgb_model=best_model,
+            artifact_path=f"best_model_{stock_name}",
             input_example=X_train.head(),
             signature=model_signature
         )
@@ -167,7 +218,7 @@ def test_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, st
     return pred_df, X_testing_df
 
 
-def model_testing_pipeline():
+def model_testing_pipeline(tunning=False):
 
     logger.debug("Loading the featurized dataset..")
     stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
@@ -184,7 +235,8 @@ def model_testing_pipeline():
             X=stock_df_feat.drop([model_config["TARGET_NAME"]], axis=1),
             y=stock_df_feat[model_config["TARGET_NAME"]],
             forecast_horizon=model_config['FORECAST_HORIZON'],
-            stock_name=stock_name
+            stock_name=stock_name,
+            tunning=tunning
         )
 
         predictions_df["Stock"] = stock_name
@@ -203,6 +255,6 @@ def model_testing_pipeline():
 if __name__ == "__main__":
     logger.info("Starting the Model Testing pipeline...")
 
-    model_testing_pipeline()
+    model_testing_pipeline(tunning=False)
     
     logger.info("Model Testing Pipeline was sucessful!")

@@ -4,7 +4,7 @@ sys.path.insert(0,'.')
 import re
 import warnings
 from src.utils import *
-from src.features.build_features import build_features
+from src.features.feat_eng import build_features
 from src.config import features_list
 from src.models.model_utils import (
     make_predict

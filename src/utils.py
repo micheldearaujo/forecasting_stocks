@@ -52,7 +52,7 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
 
     logger.info("Vizualizing the results...")
 
-    fig, axs = plt.subplots(figsize=(10, 4))
+    fig, axs = plt.subplots(figsize=(6, 3))
     # Plot the Actuals
     sns.lineplot(
         data=pred_df,
@@ -91,7 +91,10 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
     axs.set_xlabel("Date")
     axs.set_ylabel("R$")
 
-    plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now().date()}_{stock_name}.png")
+    try:
+        plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now().date()}_{stock_name}.png")
+    except FileNotFoundError:
+        logger.warning("Forecast Figure not Saved!")
     #plt.show()
     return fig
 

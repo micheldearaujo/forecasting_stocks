@@ -51,7 +51,7 @@ def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False
     # extract the learning curves
     learning_results = model.evals_result()
 
-    fig, axs = plt.subplots(1, 2, figsize=(10, 4))
+    fig, axs = plt.subplots(1, 2, figsize=(6, 3))
     plt.suptitle("XGBoost Learning Curves")
     axs[0].plot(learning_results['validation_0']['rmse'], label='Training')
     axs[0].set_title("RMSE Metric")
@@ -65,7 +65,7 @@ def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False
     axs[1].set_xlabel("Iterations")
     axs[1].legend()
 
-    fig2, axs2 = plt.subplots(figsize=(10, 4))
+    fig2, axs2 = plt.subplots(figsize=(6, 3))
     plot_importance(model, ax=axs2, importance_type='gain')
     plt.close()
     

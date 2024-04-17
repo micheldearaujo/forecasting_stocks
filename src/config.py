@@ -19,6 +19,7 @@ import os
 import logging
 from joblib import load, dump
 import asyncio
+from scipy.stats import uniform, randint
 
 # Time Series Libraries
 import statsmodels.api as sm
@@ -56,7 +57,7 @@ model_config = {
     "TARGET_NAME": "Close",
     "VALIDATION_METRIC": "MAPE",
     "OPTIMIZATION_METRIC": "MSE",
-    "FORECAST_HORIZON": 14,
+    "FORECAST_HORIZON": 7,
     "REGISTER_MODEL_NAME_VAL": "Stock_Predictor_Validation",
     "REGISTER_MODEL_NAME_INF": "Stock_Predictor_Inference",
     "MODEL_NAME": "xgboost_model",
@@ -124,4 +125,47 @@ xgboost_hyperparameter_config = {
     'subsample': hp.choice('subsample', [0.8, 1.0]),
     'reg_alpha': hp.choice('reg_alpha', [0.01, 0.1, 0.25, 0.5, 1.0]),
 
+}
+
+
+
+# Parameter distributions for ExtraTreesRegressor
+extra_trees_param_distributions = {
+    'n_estimators': [100, 200, 300, 400, 500],
+    'max_features': ['1.0', 'sqrt', 'log2'],
+    'max_depth': [None] + list(range(5, 26)),
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4],
+    'bootstrap': [True, False]
+}
+
+# Parameter distributions for XGBoost
+xgb_param_distributions = {
+    'n_estimators': randint(100, 1000),
+    'learning_rate': uniform(0.01, 0.3),
+    'max_depth': randint(3, 10),
+    'subsample': uniform(0.7, 0.3),
+    'colsample_bytree': uniform(0.9, 0.1),
+    'min_child_weight': randint(1, 10),
+    'gamma': uniform(0, 0.5)
+}
+
+# Parameter distributions for LightGBM
+lgb_param_distributions = {
+    'n_estimators': randint(100, 1000),
+    'learning_rate': uniform(0.01, 0.3),
+    'max_depth': randint(-1, 15),  # -1 for no limit
+    'subsample': uniform(0.7, 0.3),  # Also known as bagging fraction
+    'colsample_bytree': uniform(0.9, 0.1),  # Feature fraction
+    'min_child_weight': randint(1, 10),
+    'num_leaves': randint(20, 200),
+    'reg_alpha': uniform(0, 1),
+    'reg_lambda': uniform(0, 1)
+}
+
+# Organizing all parameter distributions into one dictionary
+param_distributions_dict = {
+    'ExtraTreesRegressor': extra_trees_param_distributions,
+    'XGBRegressor': xgb_param_distributions,
+    'LightGBM': lgb_param_distributions
 }
