@@ -26,10 +26,6 @@ This project is composed by the main features:
 - Simple trading algorithm based on crossing of moving averages.
 - Front-end page where you can change the timeframe, colors and moving averages of the trading algorithm.
 
-
-### MLflow tracking
-This project uses the MLflow library to perform model registry and experiment tracking. Altough this is returning some errors with Github Actions, I will continue to use that for I consider model tracking and registry such a important step in any Data Science project.
-
 ## Installation
 
 Use the following code to install the project locally:
@@ -65,4 +61,4 @@ Last but not least, launch the Streamlit interface:
   streamlit run src/app/app.py
 ```
 
-![alt text](https://github.com/micheldearaujo/forecasting_stocks/blob/main/reports/trade_page.png)
+![alt text](https://github.com/micheldearaujo/forecasting_stocks/blob/main/reports/trade.png)
