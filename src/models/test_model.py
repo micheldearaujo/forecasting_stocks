@@ -105,7 +105,7 @@ def test_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, st
                 X_train.drop("Date", axis=1),
                 y_train,
                 eval_set=[(X_train.drop("Date", axis=1), y_train)],
-                verbose=0
+                verbose=10
             )
 
         # Iterate over the dataset to perform predictions over the forecast horizon, one by one.
