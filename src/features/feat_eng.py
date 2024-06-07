@@ -29,7 +29,9 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool=True) -
         stock_df_featurized['day_of_month'] = stock_df_featurized["Date"].apply(lambda x: float(x.day))
         stock_df_featurized['month'] = stock_df_featurized['Date'].apply(lambda x: float(x.month))
         stock_df_featurized['quarter'] = stock_df_featurized['Date'].apply(lambda x: float(x.quarter))
-        stock_df_featurized['week'] = stock_df_featurized['Date'].apply(lambda x: float(x.week))
+        stock_df_featurized['day_of_week'] = stock_df_featurized['Date'].apply(lambda x: float(x.weekday()))
+        stock_df_featurized['week_of_month'] = (stock_df_featurized['day_of_month'] - 1) // 7 + 1
+        stock_df_featurized['year'] = stock_df_featurized['Date'].apply(lambda x: float(x.year))
         try:
             stock_df_featurized['Close'] = stock_df_featurized['Close'].apply(lambda x: round(x, 2))
         except:
