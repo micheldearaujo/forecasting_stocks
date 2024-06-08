@@ -6,7 +6,7 @@ from src.utils import *
 from src.config import param_distributions_dict
 from src.models.train_model import extract_learning_curves
 from src.models.model_utils import cd_pipeline
-from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 from sklearn.metrics import make_scorer, mean_squared_error
 import warnings
 

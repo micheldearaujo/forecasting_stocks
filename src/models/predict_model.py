@@ -6,13 +6,115 @@ import warnings
 from src.utils import *
 from src.features.feat_eng import build_features
 from src.config import features_list
-from src.models.model_utils import (
-    make_predict
-)
 
 warnings.filterwarnings("ignore")
 logger = logging.getLogger("inference")
 logger.setLevel(logging.DEBUG)
+
+def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list: list) -> pd.DataFrame:
+    """
+    Create a future dataframe for forecasting.
+
+    Parameters:
+        forecast_horizon (int): The number of days to forecast into the future.
+        model_df (pandas dataframe): The dataframe containing the training data.
+
+    Returns:
+        future_df (pandas dataframe): The future dataframe used for forecasting.
+    """
+
+    # create the future dataframe with the specified number of days
+    last_training_day = model_df.Date.max()
+    date_list = [last_training_day + dt.timedelta(days=x+1) for x in range(forecast_horzion+1)]
+    future_df = pd.DataFrame({"Date": date_list})
+    
+    # add stock column to iterate
+    future_df["Stock"] = model_df.Stock.unique()[0]
+
+    # build the features for the future dataframe using the specified features
+    inference_features_list = [feature for feature in features_list if "MA" not in feature and "lag" not in feature]
+    future_df = build_features(future_df, inference_features_list, save=False)
+
+    # filter out weekends from the future dataframe
+    future_df["day_of_week_name"] = future_df.Date.apply(lambda x: x.day_name())
+    future_df = future_df[future_df["day_of_week_name"].isin(["Sunday", "Saturday"]) == False]
+    future_df = future_df.drop("day_of_week_name", axis=1)
+    future_df = future_df.reset_index(drop=True)
+    
+    # set the first lagged price value to the last price from the training data
+    ma_and_lag_features = [feature for feature in features_list if feature not in inference_features_list]
+    for feature in ma_and_lag_features:
+        
+        future_df[feature] = 0
+        if "lag" in feature:
+            lag_value = int(feature.split("_")[-1])
+            future_df.loc[future_df.index.min(), feature] = model_df['Close'].values[-lag_value]
+        else:
+            ma_value = int(feature.split("_")[-1])
+            future_df.loc[future_df.index.min(), feature] = model_df['Close'].rolling(ma_value).mean().values[-1]
+
+    return future_df
+
+
+def make_predict(model, forecast_horizon: int, future_df: pd.DataFrame, past_target_values: list) -> pd.DataFrame:
+
+    """
+    Make predictions for the next `forecast_horizon` days using a XGBoost model
+    
+    Parameters:
+        model (sklearn model): Scikit-learn best model to use to perform inferece.
+        forecast_horizon (pandas dataframe): The amount of days to predict into the future.
+        future_df (pd.DataFrame): The "Feature" DataFrame (X) with future index.
+        past_df (pd.DataFrame): The past values DataFrame, to calculate the moving averages on.
+        
+    Returns:
+        pd.DataFrame: The future DataFrame with forecasts.
+    """
+
+    future_df_feat = future_df.copy()
+
+    # Create empty list for storing each prediction
+    predictions = []
+
+    updated_fh = len(future_df_feat) # after removing weekends
+
+    for day in range(0, updated_fh):
+
+        # extract the next day to predict
+        x_inference = pd.DataFrame(future_df_feat.drop(columns=["Date", "Stock"]).loc[day, :]).transpose()
+        prediction = model.predict(x_inference)[0]
+        predictions.append(prediction)
+        all_features = future_df_feat.columns
+
+        # Append the prediction to the last_closing_prices
+        past_target_values.append(prediction)
+
+        # get the prediction and input as the lag 1
+        if day != updated_fh-1:
+            
+            lag_features = [feature for feature in all_features if "lag" in feature]
+            for feature in lag_features:
+                lag_value = int(feature.split("_")[-1])
+                future_df_feat.loc[day+1, feature] = past_target_values[-lag_value]
+
+            
+            moving_averages_features = [feature for feature in all_features if "MA" in feature]
+            for feature in moving_averages_features:
+                ma_value = int(feature.split("_")[-1])
+                last_n_closing_prices = [*past_target_values[-ma_value+1:], prediction]
+                next_ma_value = np.mean(last_n_closing_prices)
+                future_df_feat.loc[day+1, feature] = next_ma_value
+
+        else:
+            # check if it is the last day, so we stop
+            break
+    
+    future_df_feat["Forecast"] = predictions
+    future_df_feat["Forecast"] = future_df_feat["Forecast"].astype('float64')
+    future_df_feat = future_df_feat[["Date", "Forecast"]].copy()
+    
+    return future_df_feat
+
 
 def load_production_model(logger, model_config, stock_name):
     """

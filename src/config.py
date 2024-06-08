@@ -74,11 +74,7 @@ stocks_list = [
     "TAEE4.SA", #"RAIZ4.SA",
     "EGIE3.SA", "BBSE3.SA", "CSMG3.SA", "PETR4.SA",
     "BRSR6.SA"]
-# Configura o logging
-log_format = "[%(name)s][%(levelname)-6s] %(message)s"
-logging.basicConfig(format=log_format)
-logger = logging.getLogger("utililies")
-logger.setLevel(logging.DEBUG)
+
 
 # paths
 ROOT_DATA_PATH = "./data"
@@ -88,34 +84,19 @@ OUTPUT_DATA_PATH = os.path.join(ROOT_DATA_PATH, "output")
 
 MODELS_PATH = "./models"
 
-param_grid = {
-    "n_estimators": [40, 100, 300],
-    "max_depth": [3, 5, 7, 9],
-    "learning_rate": [0.2, 0.3, 0.1, 0.01],
-    "subsample": [0.8, 1.0],
-    "colsample_bytree": [1.0],
-    "gamma": [0.1, 0.25, 0.5, 1.0],
-    "reg_alpha": [0, 0.25, 0.5, 1.0],
-    "reg_lambda": [0, 0.25, 0.5, 1.0],
-}
-
-xgboost_model_config = {
-    # 'learning_rate': 0.01,
+xgb_base_params = {
+    'learning_rate': 0.01,
     'max_depth': 11,
     'n_estimators': 40,
-    # 'reg_lambda': 10,
-    # 'scale_pos_weight': 10,
-    # 'seed': 42,
-    # 'subsample': 1.0,
+    'reg_lambda': 10,
+    'scale_pos_weight': 10,
+    'seed': 42,
+    'subsample': 1.0,
     'colsample_bytree': 1.0,
-    # 'gamma': 0.01
+    'gamma': 0.01
 }
 
-xgboost_fixed_model_config = {
-    'SEED': 42,
-    'SUBSAMPLE': 1.0
-}
-xgboost_hyperparameter_config = {
+xgb_param_space_hpt = {
     'max_depth': hp.choice('max_depth', [1, 2, 4, 9, 11, 30]),
     'learning_rate': hp.choice('learning_rate', [0.01, 0.03, 0.05, 0.08 ,0.1, 0.5, 1.0]),
     'gamma': hp.choice('gamma', [0.005, 0.01, 0.08, 0.1, 1.0]),
@@ -129,45 +110,44 @@ xgboost_hyperparameter_config = {
 
 }
 
-
-
-# Parameter distributions for ExtraTreesRegressor
-extra_trees_param_distributions = {
-    'n_estimators': [100, 200, 300, 400, 500],
+et_param_space = {
+    'n_estimators': [100, 200, 400],
     'max_features': ['1.0', 'sqrt', 'log2'],
-    'max_depth': [None] + list(range(5, 26)),
+    'max_depth': [None, 3, 5, 7, 9],
     'min_samples_split': [2, 5, 10],
     'min_samples_leaf': [1, 2, 4],
     'bootstrap': [True, False]
 }
 
-# Parameter distributions for XGBoost
-xgb_param_distributions = {
-    'n_estimators': randint(100, 1000),
-    'learning_rate': uniform(0.01, 0.3),
-    'max_depth': randint(3, 10),
-    'subsample': uniform(0.7, 0.3),
-    'colsample_bytree': uniform(0.9, 0.1),
-    'min_child_weight': randint(1, 10),
-    'gamma': uniform(0, 0.5)
+xgb_param_space = {
+    'min_child_weight': [None, 1, 3, 5, 7],
+    "n_estimators": [None, 40, 100, 300],
+    "max_depth": [None, 3, 5, 7, 9],
+    "learning_rate": [None, 0.2, 0.3, 0.1, 0.01],
+    "subsample": [None, 0.8, 1.0],
+    "colsample_bytree": [None, 1.0],
+    "gamma": [None, 0.1, 0.25, 0.5, 1.0],
+    "reg_alpha": [None, 0, 0.25, 0.5, 1.0],
+    "reg_lambda": [None, 0, 0.25, 0.5, 1.0],
+    "seed": [42]
 }
 
-# Parameter distributions for LightGBM
-lgb_param_distributions = {
-    'n_estimators': randint(100, 1000),
-    'learning_rate': uniform(0.01, 0.3),
-    'max_depth': randint(-1, 15),  # -1 for no limit
-    'subsample': uniform(0.7, 0.3),  # Also known as bagging fraction
-    'colsample_bytree': uniform(0.9, 0.1),  # Feature fraction
-    'min_child_weight': randint(1, 10),
-    'num_leaves': randint(20, 200),
-    'reg_alpha': uniform(0, 1),
-    'reg_lambda': uniform(0, 1)
+lgb_param_space = {
+    'min_child_weight': [None, 1, 3, 5, 7],
+    "n_estimators": [None, 40, 100, 300],
+    "max_depth": [None, 3, 5, 7, 9],
+    "learning_rate": [None, 0.2, 0.3, 0.1, 0.01],
+    "subsample": [None, 0.8, 1.0],
+    "colsample_bytree": [None, 1.0],
+    "gamma": [None, 0.1, 0.25, 0.5, 1.0],
+    "reg_alpha": [None, 0, 0.25, 0.5, 1.0],
+    "reg_lambda": [None, 0, 0.25, 0.5, 1.0],
+    "seed": [42]
 }
 
 # Organizing all parameter distributions into one dictionary
-param_distributions_dict = {
-    'ExtraTreesRegressor': extra_trees_param_distributions,
-    'XGBRegressor': xgb_param_distributions,
-    'LightGBM': lgb_param_distributions
+param_space_dict = {
+    'ExtraTreesRegressor': et_param_space,
+    'XGBRegressor': xgb_param_space,
+    'LightGBM': lgb_param_space
 }

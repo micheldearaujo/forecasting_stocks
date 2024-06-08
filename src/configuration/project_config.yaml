@@ -1,0 +1,43 @@
+# project_config.yaml
+general:
+  test_size: 0.2
+  target_name: Close
+  forecast_horizon: 7
+
+model_config:
+  validation_metric: MAPE
+  optimization_metric: MSE
+  register_model_name_val: Stock_Predictor_Validation
+  register_model_name_inf: Stock_Predictor_Inference
+  model_name: xgboost_model
+
+data_config:
+  period: 3600d
+  interval: 1d
+  stock_name: BOVA11.SA
+  stocks_list: 
+    - BOVA11.SA
+    - BCFF11.SA
+    - TAEE4.SA
+    - EGIE3.SA
+    - BBSE3.SA
+    - CSMG3.SA
+    - PETR4.SA
+    - BRSR6.SA
+
+features_list:
+  - day_of_month
+  - month
+  - day_of_week
+  - week_of_month
+  - quarter
+  - CLOSE_MA_3
+  - Close_lag_1
+  - Close_lag_2
+
+paths:
+  root_data_path: ./data
+  raw_data_path: data/raw
+  processed_data_path: data/processed
+  output_data_path: data/output
+  models_path: ./models

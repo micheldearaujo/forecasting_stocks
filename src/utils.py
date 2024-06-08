@@ -7,33 +7,24 @@ import sys
 
 sys.path.insert(0,'.')
 
+import yaml
+
 from src.config import *
 
 
-def ts_train_test_split(data: pd.DataFrame, target:str, test_size: int):
-    """
-    Splits the Pandas DataFrame into training and tests sets
-    based on a Forecast Horizon value.
+with open("src/configuration/hyperparams.yaml", 'r') as f:  
 
-    Paramteres:
-        data (pandas dataframe): Complete dataframe with full data
-        targer (string): the target column name
-        test_size (int): the amount of periods to forecast
+    config = yaml.safe_load(f.read())
 
-    Returns:
-        X_train, X_test, y_train, y_test dataframes for training and testing
-    """
 
-    logger.info("Spliting the dataset...")
 
-    train_df = data.iloc[:-test_size, :]
-    test_df = data.iloc[-test_size:, :]
-    X_train = train_df.drop(target, axis=1)
-    y_train = train_df[target]
-    X_test = test_df.drop(target, axis=1)
-    y_test = test_df[target]
 
-    return X_train, X_test, y_train, y_test
+# Organizing all parameter distributions into one dictionary
+param_space_dict = { 
+    'ExtraTreesRegressor': config['param_space_dict']['et_param_space'],
+    'XGBRegressor': config['param_space_dict']['xgb_param_space'],
+    'LightGBM': config['param_space_dict']['lgb_param_space']
+}
 
 
 def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model_mae: float, model_wape: float, stock_name: str):
@@ -53,6 +44,7 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
     logger.info("Vizualizing the results...")
 
     fig, axs = plt.subplots(figsize=(6, 3))
+
     # Plot the Actuals
     sns.lineplot(
         data=pred_df,
@@ -93,8 +85,10 @@ def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model
 
     try:
         plt.savefig(f"./reports/figures/XGBoost_predictions_{dt.datetime.now().date()}_{stock_name}.png")
+
     except FileNotFoundError:
         logger.warning("Forecast Figure not Saved!")
+
     #plt.show()
     return fig
 
@@ -156,49 +150,3 @@ def visualize_forecast(pred_df: pd.DataFrame, historical_df: pd.DataFrame, stock
 
     #plt.show()
     return fig
-
-
-def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list: list) -> pd.DataFrame:
-    """
-    Create a future dataframe for forecasting.
-
-    Parameters:
-        forecast_horizon (int): The number of days to forecast into the future.
-        model_df (pandas dataframe): The dataframe containing the training data.
-
-    Returns:
-        future_df (pandas dataframe): The future dataframe used for forecasting.
-    """
-
-    # create the future dataframe with the specified number of days
-    last_training_day = model_df.Date.max()
-    date_list = [last_training_day + dt.timedelta(days=x+1) for x in range(forecast_horzion)]
-    future_df = pd.DataFrame({"Date": date_list})
-    
-    # add stock column to iterate
-    future_df["Stock"] = model_df.Stock.unique()[0]
-
-    # build the features for the future dataframe using the specified features
-    inference_features_list = [feature for feature in features_list if "MA" not in feature and "lag" not in feature]#features_list[:-2]
-    future_df = build_features(future_df, inference_features_list, save=False)
-
-    # filter out weekends from the future dataframe
-    future_df["day_of_week"] = future_df.Date.apply(lambda x: x.day_name())
-    future_df = future_df[future_df["day_of_week"].isin(["Sunday", "Saturday"]) == False]
-    future_df = future_df.drop("day_of_week", axis=1)
-    future_df = future_df.reset_index(drop=True)
-    
-    # set the first lagged price value to the last price from the training data
-    ma_and_lag_features = [feature for feature in features_list if feature not in inference_features_list]
-    for feature in ma_and_lag_features:
-        future_df[feature] = 0
-        if "lag" in feature:
-            lag_value = int(feature.split("_")[-1])
-            future_df.loc[future_df.index.min(), feature] = model_df['Close'].values[-lag_value]
-        else:
-            ma_value = int(feature.split("_")[-1])
-            future_df.loc[future_df.index.min(), feature] = model_df['Close'].rolling(ma_value).mean().values[-1]
-    # set the first Moving Averages values
-    # future_df.loc[future_df.index.min(), "Close_lag_1"] = model_df[model_df["Date"] == last_training_day]['Close'].values[0]
-    # future_df.loc[future_df.index.min(), "CLOSE_MA_7"] = model_df['Close'].rolling(7).mean().values[-1]
-    return future_df
