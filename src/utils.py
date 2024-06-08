@@ -14,17 +14,27 @@ from src.config import *
 
 with open("src/configuration/hyperparams.yaml", 'r') as f:  
 
+    model_config = yaml.safe_load(f.read())
+
+with open("src/configuration/logging_config.yaml", 'r') as f:  
+
     config = yaml.safe_load(f.read())
+    logging.config.dictConfig(config)
 
-
-
+logger = logging.getLogger(__name__)
 
 # Organizing all parameter distributions into one dictionary
-param_space_dict = { 
-    'ExtraTreesRegressor': config['param_space_dict']['et_param_space'],
-    'XGBRegressor': config['param_space_dict']['xgb_param_space'],
-    'LightGBM': config['param_space_dict']['lgb_param_space']
-}
+# param_space_dict = { 
+#     'ExtraTreesRegressor': model_config['PARAM_SPACES']['et'],
+#     'XGBRegressor': model_config['PARAM_SPACES']['xgb'],
+#     'LightGBM': model_config['PARAM_SPACES']['lgb']
+# }
+
+def write_dataset_to_file(df: pd.DataFrame, path: str) -> None:
+    """Saves any DataFrame to a CSV file in the specified directory."""
+
+    os.makedirs(path, exist_ok=True)
+    df.to_csv(os.path.join(path, 'processed_stock_prices.csv'), index=False)
 
 
 def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model_mae: float, model_wape: float, stock_name: str):

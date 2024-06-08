@@ -102,8 +102,7 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool = True)
         final_df_featurized = pd.concat([final_df_featurized, stock_df], axis=0)
 
     if save:
-        os.makedirs(PROCESSED_DATA_PATH, exist_ok=True)
-        final_df_featurized.to_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), index=False)
+        write_dataset_to_file(final_df_featurized, PROCESSED_DATA_PATH)
 
     logger.debug("Features built successfully!")
     logger.debug(f"\n{final_df_featurized.tail()}")

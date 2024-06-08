@@ -10,43 +10,6 @@ sys.path.insert(0,'.')
 from src.config import *
 
 
-
-def train_model(X_train: pd.DataFrame,  y_train: pd.DataFrame, params: dict = None):
-    """
-    Trains a XGBoost model for Forecasting
-    
-    :param X_train: Training Features
-    :param y_train: Training Target
-
-    :return: Fitted model
-    """
-    logger.info("Training the model...")
-
-    # create the model
-    if params is None:
-        print("param none")
-        xgboost_model = xgb.XGBRegressor()
-
-    else:
-        # use existing params
-        xgboost_model = xgb.XGBRegressor(
-            **params
-            )
-
-    # train the model
-    xgboost_model.fit(
-        X_train,
-        y_train,
-        eval_set=[(X_train, y_train)],
-        eval_metric=["rmse", "logloss"],
-        )
-
-    # save model
-    dump(xgboost_model, f"./models/{model_config['REGISTER_MODEL_NAME_EVAL']}.joblib")
-
-    return xgboost_model
-
-
 def time_series_grid_search_xgb(X, y, param_grid: dict, stock_name, n_splits=5, random_state=0):
     """
     Performs time series hyperparameter tuning on an XGBoost model using grid search.
@@ -97,6 +60,7 @@ def predictions_sanity_check(client, run_info, y_train: pd.DataFrame, pred_df: p
     # check if the MAPE is less than 3%
     # check if the predictions have similar variation of historical
     logger.debug("Checking if the metrics and forecasts are valid...")
+    
     if (model_mape < 0.03) and (0 < pred_df["Forecast"].std() < y_train.std()*1.5):
 
         # if so, transit to staging

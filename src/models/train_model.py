@@ -3,102 +3,115 @@ import sys
 sys.path.insert(0,'.')
 
 from src.utils import *
-from xgboost import plot_importance
 import warnings
 import yaml
+import argparse
+import logging
 
-warnings.filterwarnings("ignore")
+import xgboost as xgb
+from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
+from sklearn.ensemble import ExtraTreesRegressor
+import matplotlib.pyplot as plt
 
 with open("src/configuration/logging_config.yaml", 'r') as f:  
 
-    config = yaml.safe_load(f.read())
-    logging.config.dictConfig(config)
+    loggin_config = yaml.safe_load(f.read())
+    logging.config.dictConfig(loggin_config)
+
+with open("src/configuration/hyperparams.yaml", 'r') as f:  
+
+    hyperparams = yaml.safe_load(f.read())
+
+with open("src/configuration/project_config.yaml", 'r') as f:  
+
+    model_config = yaml.safe_load(f.read())['model_config']
 
 logger = logging.getLogger(__name__)
+
+warnings.filterwarnings("ignore")
         
 
-def train_model(X_train, y_train, params):
-    """Treina um modelo XGBoost para regressão."""
-    dtrain = xgb.DMatrix(X_train, label=y_train)
-    model = xgb.train(params, dtrain)
-    return model
+def train_model(X_train, y_train, model_type, ticker_symbol, tune_params):
+    """Trains a tree-based regression model."""
 
-def predict(model, X_test):
+    os.makedirs(MODELS_PATH, exist_ok=True)
+    os.makedirs(MODELS_PATH+f'/{model_type}', exist_ok=True)
+    base_params = hyperparams['BASE_PARAMS'][model_type]
+
+    if tune_params:
+        best_params = tune_params_gridsearch(X_train, y_train, model_type, ticker_symbol)
+        base_params.update(best_params)
+
+    if model_type == 'xgb':
+        xgb.set_config(verbosity=1)
+        dtrain = xgb.DMatrix(X_train, label=y_train)
+        model = xgb.train(base_params, dtrain, num_boost_round=200)
+        model.save_model(f"{MODELS_PATH}/{model_type}/Model_{ticker_symbol}.xgb")
+        return model
+
+    elif model_type == 'et':
+        model = ExtraTreesRegressor(**base_params).fit(X_train, y_train)
+        dump(model, f"{MODELS_PATH}/{model_type}/Model_{ticker_symbol}.json")
+        return model
+    
+
+def predict(model, X_test, model_type):
     """Realiza previsões com o modelo XGBoost treinado."""
-    dtest = xgb.DMatrix(X_test)
-    y_pred = model.predict(dtest)
-    return y_pred
+
+    if model_type == 'xgb':
+        dtest = xgb.DMatrix(X_test)
+        return model.predict(dtest)
+
+    elif model_type == 'et':
+        return model.predict(X_test)
+
+    elif model_type == 'nbeats':
+        return model.predict(X_test)
 
 
-def train_inference_model(X_train:pd.DataFrame, y_train: pd.Series, stock_name: str) -> xgb.sklearn.XGBRegressor:
+def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker_symbol: str, n_splits=5):
     """
-    Trains the XGBoost model with the full dataset to perform out-of-sample inference.
-    """
+    Performs time series hyperparameter tuning on a model using grid search.
     
-    # use existing params
-    xgboost_model = xgb.XGBRegressor(
-        eval_metric=["rmse", "logloss"],
-        n_estimators=40,
-        max_depth=11
-    )
-
-    # train the model
-    xgboost_model.fit(
-        X_train,
-        y_train,
-        eval_set=[(X_train, y_train)],
-        verbose=20
-    )
-
-    return xgboost_model
-
-
-def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False) -> matplotlib.figure.Figure:
-    """
-    Extracting the XGBoost Learning Curves.
-    Can display the figure or not.
-
     Args:
-        model (xgb.sklearn.XGBRegressor): Fitted XGBoost model
-        display (bool, optional): Display the figure. Defaults to False.
-
+        X (pd.DataFrame): The input feature data
+        y (pd.Series): The target values
+        param_grid (dict): Dictionary of hyperparameters to search over
+        n_splits (int): Number of folds for cross-validation (default: 5)
+        random_state (int): Seed for the random number generator (default: 0)
+    
     Returns:
-        matplotlib.figure.Figure: Learning curves figure
+        tuple: A tuple containing the following elements:
+            best_model (xgb.XGBRegressor): The best XGBoost model found by the grid search
+            best_params (dict): The best hyperparameters found by the grid search
     """
 
-    # extract the learning curves
-    learning_results = model.evals_result()
+    logger.info(f"Performing hyperparameter tuning for {ticker_symbol} using {model_type}...")
 
-    fig, axs = plt.subplots(1, 2, figsize=(6, 3))
-    plt.suptitle("XGBoost Learning Curves")
-    axs[0].plot(learning_results['validation_0']['rmse'], label='Training')
-    axs[0].set_title("RMSE Metric")
-    axs[0].set_ylabel("RMSE")
-    axs[0].set_xlabel("Iterations")
-    axs[0].legend()
+    tscv = TimeSeriesSplit(n_splits=n_splits)
 
-    axs[1].plot(learning_results['validation_0']['logloss'], label='Training')
-    axs[1].set_title("Logloss Metric")
-    axs[1].set_ylabel("Logloss")
-    axs[1].set_xlabel("Iterations")
-    axs[1].legend()
+    model = xgb.XGBRegressor() if model_type == "xgb" else eval(model_type + "Regressor")
 
-    fig2, axs2 = plt.subplots(figsize=(6, 3))
-    plot_importance(model, ax=axs2, importance_type='gain')
-    plt.close()
+    param_distributions = hyperparams['PARAM_SPACES'][model_type]
+
+    grid_search = GridSearchCV(
+        model,
+        param_grid=param_distributions,
+        cv=tscv,
+        n_jobs=-1,
+        scoring='neg_mean_absolute_error',
+        verbose=1
+    ).fit(X, y)
     
+    best_params = grid_search.best_params_
+    logger.info(f"Best parameters found: {best_params}")
 
-    if display:
-        plt.show()
-        
-    
-    return fig, fig2
+    return best_params
 
 
-def train_pipeline():
+def model_training_pipeline(tune_params=False):
 
-    client = MlflowClient()
-    
+
     logger.debug("Loading the featurized dataset..")
     all_ticker_symbols_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
 
@@ -110,22 +123,20 @@ def train_pipeline():
         X_train=ticker_df_feat.drop([model_config["TARGET_NAME"], "Date"], axis=1)
         y_train=ticker_df_feat[model_config["TARGET_NAME"]]
 
-        logger.debug("Training the model..")
-        xgboost_model = train_inference_model(X_train, y_train, ticker_symbol)
+        logger.debug("Training the models..")
+        xgb_model = train_model(X_train, y_train, 'xgb', ticker_symbol, tune_params)
+        # et_model = train_model(X_train, y_train, 'et', ticker_symbol, tune_params)
 
         logger.debug("Plotting the learning curves..")
         # learning_curves_fig , feat_importance_fig = extract_learning_curves(xgboost_model)
 
-        # Saves the model
-        os.makedirs(MODELS_PATH, exist_ok=True)
-        xgboost_model.save_model(f"{MODELS_PATH}/XGB_{ticker_symbol}.json")
 
 
 # Execute the whole pipeline
 if __name__ == "__main__":
     logger.info("Starting the training pipeline...")
 
-    train_pipeline()
+    model_training_pipeline(True)
 
     logger.info("Training Pipeline was sucessful!\n")
 

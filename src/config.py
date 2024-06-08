@@ -133,7 +133,7 @@ xgb_param_space = {
 }
 
 lgb_param_space = {
-    'min_child_weight': [None, 1, 3, 5, 7],
+    "min_child_weight": [None, 1, 3, 5, 7],
     "n_estimators": [None, 40, 100, 300],
     "max_depth": [None, 3, 5, 7, 9],
     "learning_rate": [None, 0.2, 0.3, 0.1, 0.01],
