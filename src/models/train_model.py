@@ -43,10 +43,9 @@ def train_model(X_train, y_train, model_type, ticker_symbol, tune_params):
         base_params.update(best_params)
 
     if model_type == 'xgb':
-        xgb.set_config(verbosity=1)
-        dtrain = xgb.DMatrix(X_train, label=y_train)
-        model = xgb.train(base_params, dtrain, num_boost_round=200)
-        model.save_model(f"{MODELS_PATH}/{model_type}/Model_{ticker_symbol}.xgb")
+
+        model = xgb.XGBRegressor(objective='reg:squarederror', **base_params).fit(X_train, y_train)
+        model.save_model(f"{MODELS_PATH}/{model_type}/Model_{ticker_symbol}.json")
         return model
 
     elif model_type == 'et':
@@ -69,7 +68,7 @@ def predict(model, X_test, model_type):
         return model.predict(X_test)
 
 
-def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker_symbol: str, n_splits=5):
+def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker_symbol: str, n_splits=3):
     """
     Performs time series hyperparameter tuning on a model using grid search.
     
@@ -88,11 +87,11 @@ def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker
 
     logger.info(f"Performing hyperparameter tuning for {ticker_symbol} using {model_type}...")
 
-    tscv = TimeSeriesSplit(n_splits=n_splits)
-
-    model = xgb.XGBRegressor() if model_type == "xgb" else eval(model_type + "Regressor")
+    model = xgb.XGBRegressor() if model_type == "xgb" else ExtraTreesRegressor()
 
     param_distributions = hyperparams['PARAM_SPACES'][model_type]
+
+    tscv = TimeSeriesSplit(n_splits=n_splits)
 
     grid_search = GridSearchCV(
         model,
@@ -116,16 +115,15 @@ def model_training_pipeline(tune_params=False):
     all_ticker_symbols_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
 
     for ticker_symbol in all_ticker_symbols_df["Stock"].unique():
-        logger.info("Creating training dataset for Ticker Symbol [%s...]"%ticker_symbol)
 
         ticker_df_feat = all_ticker_symbols_df[all_ticker_symbols_df["Stock"] == ticker_symbol].drop("Stock", axis=1).copy()
 
         X_train=ticker_df_feat.drop([model_config["TARGET_NAME"], "Date"], axis=1)
         y_train=ticker_df_feat[model_config["TARGET_NAME"]]
 
-        logger.debug("Training the models..")
-        xgb_model = train_model(X_train, y_train, 'xgb', ticker_symbol, tune_params)
-        # et_model = train_model(X_train, y_train, 'et', ticker_symbol, tune_params)
+        logger.debug(f"Training the models for Ticker Symbol [{ticker_symbol}]..")
+        # xgb_model = train_model(X_train, y_train, 'xgb', ticker_symbol, tune_params)
+        et_model = train_model(X_train, y_train, 'et', ticker_symbol, tune_params)
 
         logger.debug("Plotting the learning curves..")
         # learning_curves_fig , feat_importance_fig = extract_learning_curves(xgboost_model)
@@ -134,9 +132,12 @@ def model_training_pipeline(tune_params=False):
 
 # Execute the whole pipeline
 if __name__ == "__main__":
+
+    # parser = argparse.ArgumentParser(description="Train XGBoost models with optional hyperparameter tuning.")
+    # parser.add_argument("--tune", action="store_true", help="Enable hyperparameter tuning")
+    # args = parser.parse_args()
+
     logger.info("Starting the training pipeline...")
-
     model_training_pipeline(True)
-
-    logger.info("Training Pipeline was sucessful!\n")
+    logger.info("Training Pipeline completed successfully!")
 
