@@ -28,6 +28,8 @@ def extract_learning_curves(model: xgb.sklearn.XGBRegressor, display: bool=False
         matplotlib.figure.Figure: Learning curves figure
     """
 
+    logger.debug("Plotting the learning curves...")
+
     # extract the learning curves
     learning_results = model.evals_result()
 

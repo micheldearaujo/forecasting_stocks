@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 warnings.filterwarnings("ignore")
         
 
-def train_model(X_train, y_train, model_type, ticker_symbol, tune_params):
+def train_model(X_train, y_train, model_type, ticker_symbol, tune_params, save_model):
     """Trains a tree-based regression model."""
 
     os.makedirs(MODELS_PATH, exist_ok=True)
@@ -45,27 +45,31 @@ def train_model(X_train, y_train, model_type, ticker_symbol, tune_params):
     if model_type == 'xgb':
 
         model = xgb.XGBRegressor(objective='reg:squarederror', **base_params).fit(X_train, y_train)
-        model.save_model(f"{MODELS_PATH}/{model_type}/Model_{ticker_symbol}.json")
+        if save_model:
+            model.save_model(f"{MODELS_PATH}/{model_type}/Model_{ticker_symbol}.json")
         return model
 
     elif model_type == 'et':
         model = ExtraTreesRegressor(**base_params).fit(X_train, y_train)
-        dump(model, f"{MODELS_PATH}/{model_type}/Model_{ticker_symbol}.json")
+        if save_model:
+            dump(model, f"{MODELS_PATH}/{model_type}/Model_{ticker_symbol}.json")
         return model
     
 
 def predict(model, X_test, model_type):
     """Realiza previsões com o modelo XGBoost treinado."""
 
-    if model_type == 'xgb':
-        dtest = xgb.DMatrix(X_test)
-        return model.predict(dtest)
+    return model.predict(X_test)
 
-    elif model_type == 'et':
-        return model.predict(X_test)
+    # if model_type == 'xgb':
+    #     dtest = xgb.DMatrix(X_test)
+    #     return model.predict(dtest)
 
-    elif model_type == 'nbeats':
-        return model.predict(X_test)
+    # elif model_type == 'et':
+    #     return model.predict(X_test)
+
+    # elif model_type == 'nbeats':
+    #     return model.predict(X_test)
 
 
 def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker_symbol: str, n_splits=3):
@@ -85,7 +89,7 @@ def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker
             best_params (dict): The best hyperparameters found by the grid search
     """
 
-    logger.info(f"Performing hyperparameter tuning for {ticker_symbol} using {model_type}...")
+    logger.info(f"Performing hyperparameter tuning for [{ticker_symbol}] using {model_type.upper()}...")
 
     model = xgb.XGBRegressor() if model_type == "xgb" else ExtraTreesRegressor()
 
@@ -103,17 +107,36 @@ def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker
     ).fit(X, y)
     
     best_params = grid_search.best_params_
-    logger.info(f"Best parameters found: {best_params}")
+    logger.critical(f"Best parameters found: {best_params}")
 
     return best_params
 
 
-def model_training_pipeline(tune_params=False):
-
-
+def model_training_pipeline(tune_params=False, model_type=None, ticker_symbol=None, save_model=False):
+    """
+    Perform the model training pipeline. Pipeline includes:
+        - Model Training on all or specified ticker symbol.
+        - Optional Hyperparamter tuning.
+        - Model Saving
+    """
     logger.debug("Loading the featurized dataset..")
+
+    # Load training dataset
     all_ticker_symbols_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
 
+    # Check the ticker_symbol parameter
+    if ticker_symbol:
+        ticker_symbol = ticker_symbol.upper() + '.SA'
+        all_ticker_symbols_df = all_ticker_symbols_df[all_ticker_symbols_df["Stock"] == ticker_symbol]
+
+    # Check the model_type parameter
+    available_models = model_config['available_models']
+    if model_type is not None and model_type not in available_models:
+        raise ValueError(f"Invalid model_type: {model_type}. Choose from: {available_models}")
+    
+    elif model_type:
+        available_models = [model_type]
+    
     for ticker_symbol in all_ticker_symbols_df["Stock"].unique():
 
         ticker_df_feat = all_ticker_symbols_df[all_ticker_symbols_df["Stock"] == ticker_symbol].drop("Stock", axis=1).copy()
@@ -121,23 +144,38 @@ def model_training_pipeline(tune_params=False):
         X_train=ticker_df_feat.drop([model_config["TARGET_NAME"], "Date"], axis=1)
         y_train=ticker_df_feat[model_config["TARGET_NAME"]]
 
-        logger.debug(f"Training the models for Ticker Symbol [{ticker_symbol}]..")
-        # xgb_model = train_model(X_train, y_train, 'xgb', ticker_symbol, tune_params)
-        et_model = train_model(X_train, y_train, 'et', ticker_symbol, tune_params)
+        for model_type in available_models:
+            logger.debug(f"Training model [{model_type}] for Ticker Symbol [{ticker_symbol}]...")
 
-        logger.debug("Plotting the learning curves..")
-        # learning_curves_fig , feat_importance_fig = extract_learning_curves(xgboost_model)
+            xgb_model = train_model(X_train, y_train, model_type, ticker_symbol, tune_params, save_model)
+
+            # learning_curves_fig , feat_importance_fig = extract_learning_curves(xgboost_model)
 
 
 
 # Execute the whole pipeline
 if __name__ == "__main__":
 
-    # parser = argparse.ArgumentParser(description="Train XGBoost models with optional hyperparameter tuning.")
-    # parser.add_argument("--tune", action="store_true", help="Enable hyperparameter tuning")
-    # args = parser.parse_args()
+    parser = argparse.ArgumentParser(description="Train Tree-based models with optional hyperparameter tuning.")
+    parser.add_argument(
+        "-t", "--tune",
+        action="store_true",
+        help="Enable hyperparameter tuning using GridSearchCV. Defaults to False."
+    )
+    parser.add_argument(
+        "-mt", "--model_type",
+        type=str,
+        choices=["xgb", "et"],
+        help="Model name to train (xgb, et) (optional, defaults to all)."
+    )
+    parser.add_argument(
+        "-ts", "--ticker_symbol",
+        type=str,
+        help="""Ticker Symbol to train on. (optional, defaults to all).
+        Example: bova11 -> BOVA11.SA | petr4 -> PETR4.SA"""
+    )
+    args = parser.parse_args()
 
     logger.info("Starting the training pipeline...")
-    model_training_pipeline(True)
+    model_training_pipeline(args.tune, args.model_type, args.ticker_symbol, save_model=False)
     logger.info("Training Pipeline completed successfully!")
-
