@@ -2,7 +2,7 @@
 import sys
 sys.path.insert(0,'.')
 from xgboost import plot_importance
-from utils import *
+from src.utils import *
 import logging
 import warnings
 import yaml

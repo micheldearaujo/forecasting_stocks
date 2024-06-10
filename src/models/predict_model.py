@@ -8,6 +8,8 @@ import yaml
 import argparse
 import logging
 from typing import Any
+import datetime as dt
+from dateutil.relativedelta import relativedelta
 
 import pandas as pd
 import numpy as np
@@ -21,6 +23,7 @@ from src.utils import (
 )
 
 from src.features.feat_eng import create_date_features
+# from src.models.evaluate_model import evaluate_and_store_performance
 
 warnings.filterwarnings("ignore")
 
@@ -28,12 +31,13 @@ with open("src/configuration/logging_config.yaml", 'r') as f:
 
     loggin_config = yaml.safe_load(f.read())
     logging.config.dictConfig(loggin_config)
+    logger = logging.getLogger(__name__)
 
 with open("src/configuration/project_config.yaml", 'r') as f:  
 
     config = yaml.safe_load(f.read())
 
-logger = logging.getLogger(__name__)
+
 
 def load_production_model_sklearn(model_type, ticker_symbol):
     """
@@ -202,8 +206,8 @@ def make_iterative_predictions(model: Any, future_df: pd.DataFrame, past_target_
             future_df_feat = update_lag_features(future_df_feat, day, past_target_values, all_features)
             future_df_feat = update_ma_features(future_df_feat, day, past_target_values, prediction, all_features)
     
-    future_df_feat["Forecast"] = predictions
-    future_df_feat["Forecast"] = future_df_feat["Forecast"].astype('float64')
+    future_df_feat["FORECAST"] = predictions
+    future_df_feat["FORECAST"] = future_df_feat["FORECAST"].astype('float64')
 
     return future_df_feat
 
@@ -280,6 +284,9 @@ def inference_pipeline(model_type=None, ticker_symbol=None, write_to_table=True)
             )
             predictions_df['MODEL_TYPE'] = model_type.upper()
             final_predictions_df = pd.concat([final_predictions_df, predictions_df], axis=0)
+
+    # Add the run date
+    final_predictions_df["RUN_DATE"] = dt.datetime.today().date()
 
     if write_to_table:
         logger.debug("Writing the predictions to database...")

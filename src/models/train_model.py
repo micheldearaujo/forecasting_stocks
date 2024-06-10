@@ -125,7 +125,7 @@ def training_pipeline(tune_params=False, model_type=None, ticker_symbol=None, sa
         ValueError: If an invalid model type is provided.
     """
     logger.debug("Loading the featurized dataset..")
-    all_ticker_symbols_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["DATE"])
+    all_ticker_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["DATE"])
 
     # Check the ticker_symbol parameter
     if ticker_symbol:
@@ -140,7 +140,7 @@ def training_pipeline(tune_params=False, model_type=None, ticker_symbol=None, sa
     elif model_type:
         available_models = [model_type]
     
-    for ticker_symbol in all_ticker_symbols_df["STOCK"].unique():
+    for ticker_symbol in all_ticker_df["STOCK"].unique():
         ticker_df_feat = all_ticker_df[all_ticker_df["STOCK"] == ticker_symbol].drop("STOCK", axis=1).copy()
 
         X_train, y_train = split_feat_df_Xy(ticker_df_feat)
