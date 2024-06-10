@@ -64,14 +64,12 @@ def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker
     Args:
         X (pd.DataFrame): The input feature data
         y (pd.Series): The target values
-        param_grid (dict): Dictionary of hyperparameters to search over
-        n_splits (int): Number of folds for cross-validation (default: 5)
-        random_state (int): Seed for the random number generator (default: 0)
+        model_type (str): The model to tune. Options: ['xgb', 'et']
+        ticker_symbol (str): Ticker Symbol to perform Tuning on.
+        n_splits (int): Number of folds for cross-validation (default: 3)
     
     Returns:
-        tuple: A tuple containing the following elements:
-            best_model (xgb.XGBRegressor): The best XGBoost model found by the grid search
-            best_params (dict): The best hyperparameters found by the grid search
+        best_params (dict): The best hyperparameters found by the grid search
     """
 
     logger.info(f"Performing hyperparameter tuning for [{ticker_symbol}] using {model_type.upper()}...")
@@ -99,14 +97,26 @@ def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker
 
 def training_pipeline(tune_params=False, model_type=None, ticker_symbol=None, save_model=False):
     """
-    Perform the model training pipeline. Pipeline includes:
-        - Model Training on all or specified ticker symbol.
-        - Optional Hyperparamter tuning.
-        - Model Saving
+    Executes the complete model training pipeline for one or multiple ticker symbols and model types.
+
+    The pipeline performs the following steps:
+    
+    1. Loads the featurized dataset from 'processed_stock_prices.csv'.
+    2. Filters the dataset based on the specified ticker symbol (if provided).
+    3. Trains the specified models (or all available models if none specified).
+    4. Optionally performs hyperparameter tuning using RandomizedSearchCV.
+    5. Optionally saves the trained models to files.
+
+    Args:
+        tune_params (bool, optional): If True, perform hyperparameter tuning. Defaults to False.
+        model_type (str, optional): The model type to train. If None, all available models will be trained. Valid choices are defined in `model_config['available_models']`. Defaults to None.
+        ticker_symbol (str, optional): The ticker symbol to train on. If None, all ticker symbols in the dataset will be used. Valid choices are defined in `data_config['tickers_list']`.  Defaults to None.
+        save_model (bool, optional): If True, save the trained models to files. Defaults to False.
+
+    Raises:
+        ValueError: If an invalid model type is provided.
     """
     logger.debug("Loading the featurized dataset..")
-
-    # Load training dataset
     all_ticker_symbols_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["DATE"])
 
     # Check the ticker_symbol parameter

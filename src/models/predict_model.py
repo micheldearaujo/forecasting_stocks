@@ -1,4 +1,5 @@
 import sys
+import os
 sys.path.insert(0,'.')
 
 import re
@@ -8,10 +9,16 @@ import argparse
 import logging
 from typing import Any
 
+import pandas as pd
+import numpy as np
 import xgboost as xgb
 import matplotlib.pyplot as plt
 
-from src.utils import *
+from src.utils import (
+    weekend_adj_forecast_horizon,
+    write_dataset_to_file
+)
+
 from src.features.feat_eng import create_date_features
 
 warnings.filterwarnings("ignore")
@@ -85,6 +92,36 @@ def initialize_ma_values(df: pd.DataFrame, features_list: list, target_column: s
     return future_df
 
 
+
+def create_future_frame(model_df: pd.DataFrame, forecast_horizon: int) -> pd.DataFrame:
+    """
+    Creates a Dataframe Index for future dates based on the last training date and forecast horizon.
+    """
+
+    last_training_day = model_df["DATE"].max()
+    future_dates = pd.date_range(
+        start=last_training_day + pd.DateOffset(days=1),  # Start one day after the last training date
+        periods=forecast_horizon + 1,
+        freq='D'
+    )
+    future_df = pd.DataFrame({"DATE": future_dates})
+    future_df["STOCK"] = model_df["STOCK"].iloc[0]  # Use the first stock symbol from the model DataFrame
+
+    return future_df
+
+
+def drop_weekends(future_df):
+    """
+    Dropout the weekend days of the future DataFrame,
+    since the Stock Market doesn't work on weekends.
+    """
+
+    future_df = future_df[~future_df["DAY_OF_WEEK"].isin([5, 6])]
+    future_df.reset_index(drop=True, inplace=True)
+
+    return future_df
+
+
 def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list: list) -> pd.DataFrame:
     """
     Create a future dataframe for forecasting.
@@ -98,40 +135,36 @@ def make_future_df(forecast_horzion: int, model_df: pd.DataFrame, features_list:
     """
     TARGET_NAME = config['model_config']['TARGET_NAME']
 
-    # create the future dataframe with the specified number of days
-    last_training_day = model_df["DATE"].max()
-    date_list = [last_training_day + dt.timedelta(days=x+1) for x in range(forecast_horzion+1)]
-    future_df = pd.DataFrame({"DATE": date_list})
-    
-    # add stock column to iterate
-    future_df["STOCK"] = model_df["STOCK"].unique()[0]
-
+    future_df = create_future_frame(model_df, forecast_horzion)
     future_df = create_date_features(df=future_df)
-
-    # filter out weekends from the future dataframe
-    future_df = future_df[~future_df["DAY_OF_WEEK"].isin([5, 6])]
-
-    future_df.reset_index(drop=True, inplace=True)
-
+    future_df = drop_weekends(future_df)
     future_df = initialize_ma_values(model_df, features_list, TARGET_NAME, future_df)
     future_df = initialize_lag_values(model_df, features_list, TARGET_NAME, future_df)
-    
-    
-    # # set the first lagged price value to the last price from the training data
-    # ma_and_lag_features = [feature for feature in features_list if "MA" in feature or "LAG" in feature]
-    # for feature in ma_and_lag_features:
-        
-    #     future_df[feature] = 0
-    #     if "MA" in feature:
-    #         ma_value = int(feature.split("_")[-1])
-    #         future_df.loc[future_df.index.min(), feature] = model_df[TARGET_NAME].rolling(ma_value).mean().values[-1]
 
-    #     else:
-    #         lag_value = int(feature.split("_")[-1])
-    #         future_df.loc[future_df.index.min(), feature] = model_df[TARGET_NAME].values[-lag_value]
-    
-    future_df = future_df.reindex(columns=["DATE", "STOCK", *features_list])
-    print(future_df.tail())
+    return future_df.reindex(columns=["DATE", "STOCK", *features_list])
+
+
+def update_lag_features(future_df: pd.DataFrame, day: int, past_target_values: list, features: list) -> pd.DataFrame:
+    """
+    Updates lag features in the future DataFrame based on past target values.
+    """
+    for feature in filter(lambda f: "LAG" in f, features):
+        lag_value = int(feature.split("_")[-1])
+        future_df.loc[day + 1, feature] = past_target_values[-lag_value]
+
+    return future_df
+
+
+def update_ma_features(future_df: pd.DataFrame, day: int, past_target_values: list, prediction: float, features: list) -> pd.DataFrame:
+    """
+    Updates moving average features in the future DataFrame
+    based on past target values and the current prediction.
+    """
+    for feature in filter(lambda f: "MA" in f, features):
+        ma_value = int(feature.split("_")[-1])
+        last_n_closing_prices = [*past_target_values[-ma_value + 1:], prediction]
+        future_df.loc[day + 1, feature] = np.mean(last_n_closing_prices)
+
     return future_df
 
 
@@ -155,68 +188,79 @@ def make_predict(model: Any, forecast_horizon: int, future_df: pd.DataFrame, pas
     predictions = []
 
     FH_WITHOUT_WEEKENDS = len(future_df_feat)
+    LAST_DAY = FH_WITHOUT_WEEKENDS-1
 
     for day in range(0, FH_WITHOUT_WEEKENDS):
-
-        # extract the next day to predict
-        X_inference = pd.DataFrame(future_df_feat.drop(columns=["DATE", "STOCK"]).loc[day, :]).transpose()
-        print(X_inference)
-
+        X_inference = future_df_feat.drop(columns=["DATE", "STOCK"]).loc[[day]]
         prediction = model.predict(X_inference)[0]
         predictions.append(prediction)
         
+
         # Append the prediction to the last_closing_prices
         past_target_values.append(prediction)
 
-        # get the prediction and input as the lag 1
-        if day != FH_WITHOUT_WEEKENDS-1:
-            
-            lag_features = [feature for feature in all_features if "LAG" in feature]
-            for feature in lag_features:
-                lag_value = int(feature.split("_")[-1])
-                future_df_feat.loc[day+1, feature] = past_target_values[-lag_value]
+        if day != LAST_DAY:
+            future_df_feat = update_lag_features(future_df_feat, day, past_target_values, all_features)
+            future_df_feat = update_ma_features(future_df_feat, day, past_target_values, prediction, all_features)
+            # lag_features = [feature for feature in all_features if "LAG" in feature]
+            # for feature in lag_features:
+            #     lag_value = int(feature.split("_")[-1])
+            #     future_df_feat.loc[day+1, feature] = past_target_values[-lag_value]
 
-            
-            moving_averages_features = [feature for feature in all_features if "MA" in feature]
-            for feature in moving_averages_features:
-                ma_value = int(feature.split("_")[-1])
-                last_n_closing_prices = [*past_target_values[-ma_value+1:], prediction]
-                next_ma_value = np.mean(last_n_closing_prices)
-                future_df_feat.loc[day+1, feature] = next_ma_value
+            # moving_averages_features = [feature for feature in all_features if "MA" in feature]
+            # for feature in moving_averages_features:
+            #     ma_value = int(feature.split("_")[-1])
+            #     last_n_closing_prices = [*past_target_values[-ma_value+1:], prediction]
+            #     next_ma_value = np.mean(last_n_closing_prices)
+            #     future_df_feat.loc[day+1, feature] = next_ma_value
 
         else:
-            # check if it is the last day, so we stop
             break
     
     future_df_feat["Forecast"] = predictions
     future_df_feat["Forecast"] = future_df_feat["Forecast"].astype('float64')
-    future_df_feat = future_df_feat[["DATE", "Forecast"]].copy()
+    print(future_df_feat)
 
-    print(future_df_feat.tail())
-    
     return future_df_feat
 
 
 
 def inference_pipeline(model_type=None, ticker_symbol=None, write_to_table=True):
     """
-    Run the inference pipeline for predicting stock prices using the production model.
+    Executes the model inference pipeline to generate stock price predictions.
 
-    This function loads the featurized dataset, searches for the production model for a specific stock,
-    and makes predictions for the future timeframe using the loaded model. The predictions are then
-    saved to a CSV file.
+    This function performs the following steps:
 
-    Parameters:
-        None
+    1. Loads the featurized dataset from 'processed_stock_prices.csv'.
+    2. Filters the dataset by ticker symbol if provided.
+    3. Filters the models to be used for inference based on the provided model type.
+    4. For each selected ticker symbol and model type:
+        a. Loads the corresponding production model.
+        b. Creates a future DataFrame for the forecast horizon.
+        c. Generates predictions using the loaded model.
+    5. Concatenates all predictions into a single DataFrame.
+    6. Optionally writes the predictions to a file or database table.
+
+    Args:
+        model_type (str, optional): The type of model to use for inference. If None, all available models in the configuration will be used. Defaults to None.
+        ticker_symbol (str, optional): The ticker symbol of the stock to predict. If None, predictions are made for all stocks in the dataset. Defaults to None.
+        write_to_table (bool, optional): If True, the predictions will be written to a file or database table. Defaults to True.
 
     Returns:
-        None
+        pd.DataFrame: A DataFrame containing the predictions for all selected ticker symbols and model types.
+
+    Raises:
+        ValueError: If an invalid model type is provided.
     """
 
     FORECAST_HORIZON = config['model_config']['forecast_horizon']
     available_models = config['model_config']['available_models']
     TARGET_NAME = config['model_config']['TARGET_NAME']
     features_list = config['features_list']
+    PROCESSED_DATA_PATH = config['paths']['processed_data_path']
+    OUTPUT_DATA_PATH = config['paths']['output_data_path']
+
+    FORECAST_HORIZON_ADJ = weekend_adj_forecast_horizon(FORECAST_HORIZON, 2)
 
     logger.debug("Loading the featurized dataset...")
     stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["DATE"])
@@ -249,19 +293,17 @@ def inference_pipeline(model_type=None, ticker_symbol=None, write_to_table=True)
             logger.debug("Predicting...")
             predictions_df = make_predict(
                 model=current_prod_model,
-                forecast_horizon=FORECAST_HORIZON-2,
+                forecast_horizon=FORECAST_HORIZON_ADJ,
                 future_df=future_df,
                 past_target_values=list(stock_df_feat[TARGET_NAME].values)
             )
-
-            predictions_df["STOCK"] = ticker_symbol
-            predictions_df['MODEL_TYPE'] = model_type
+            predictions_df['MODEL_TYPE'] = model_type.upper()
             
             final_predictions_df = pd.concat([final_predictions_df, predictions_df], axis=0)
 
     if write_to_table:
         logger.debug("Writing the predictions to database...")
-        final_predictions_df.to_csv(os.path.join(OUTPUT_DATA_PATH, 'output_stock_prices.csv'), index=False)
+        write_dataset_to_file(final_predictions_df, OUTPUT_DATA_PATH, "output_stock_prices")
         logger.debug("Predictions written successfully!")
 
     return final_predictions_df

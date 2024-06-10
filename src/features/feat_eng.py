@@ -112,7 +112,7 @@ def build_features(raw_df: pd.DataFrame, features_list: list, save: bool = True)
     final_df_featurized = final_df_featurized.reindex(columns=["DATE", "STOCK", TARGET_NAME, *features_list])
 
     if save:
-        write_dataset_to_file(final_df_featurized, PROCESSED_DATA_PATH)
+        write_dataset_to_file(final_df_featurized, PROCESSED_DATA_PATH, "processed_stock_prices")
 
     logger.debug("Features built successfully!")
     logger.debug(f"\n{final_df_featurized.tail()}")

@@ -30,11 +30,18 @@ logger = logging.getLogger(__name__)
 #     'LightGBM': model_config['PARAM_SPACES']['lgb']
 # }
 
-def write_dataset_to_file(df: pd.DataFrame, path: str) -> None:
+def write_dataset_to_file(df: pd.DataFrame, dir_path: str, file_name: str) -> None:
     """Saves any DataFrame to a CSV file in the specified directory."""
 
-    os.makedirs(path, exist_ok=True)
-    df.to_csv(os.path.join(path, 'processed_stock_prices.csv'), index=False)
+    os.makedirs(dir_path, exist_ok=True)
+    df.to_csv(os.path.join(dir_path, f'{file_name}.csv'), index=False)
+
+
+def weekend_adj_forecast_horizon(original_forecast_horizon, weekend_days_per_week):
+
+    adjusted_forecast_horizon = original_forecast_horizon - int(original_forecast_horizon * weekend_days_per_week / 7)
+
+    return adjusted_forecast_horizon
 
 
 def visualize_validation_results(pred_df: pd.DataFrame, model_mape: float, model_mae: float, model_wape: float, stock_name: str):
