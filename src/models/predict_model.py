@@ -13,6 +13,7 @@ import pandas as pd
 import numpy as np
 import xgboost as xgb
 import matplotlib.pyplot as plt
+from joblib import load, dump
 
 from src.utils import (
     weekend_adj_forecast_horizon,
@@ -168,14 +169,13 @@ def update_ma_features(future_df: pd.DataFrame, day: int, past_target_values: li
     return future_df
 
 
-def make_predict(model: Any, forecast_horizon: int, future_df: pd.DataFrame, past_target_values: list) -> pd.DataFrame:
+def make_iterative_predictions(model: Any, future_df: pd.DataFrame, past_target_values: list) -> pd.DataFrame:
 
     """
     Make predictions for the next `forecast_horizon` days using a XGBoost model
     
     Parameters:
         model (sklearn model): Scikit-learn best model to use to perform inferece.
-        forecast_horizon (int): The amount of days to predict into the future.
         future_df (pd.DataFrame): The "Feature" DataFrame (X) with future index.
         past_target_values (list): The target variable's historical values to calculate the moving averages on.
         
@@ -191,35 +191,19 @@ def make_predict(model: Any, forecast_horizon: int, future_df: pd.DataFrame, pas
     LAST_DAY = FH_WITHOUT_WEEKENDS-1
 
     for day in range(0, FH_WITHOUT_WEEKENDS):
+
         X_inference = future_df_feat.drop(columns=["DATE", "STOCK"]).loc[[day]]
         prediction = model.predict(X_inference)[0]
-        predictions.append(prediction)
-        
 
-        # Append the prediction to the last_closing_prices
+        predictions.append(prediction)
         past_target_values.append(prediction)
 
-        if day != LAST_DAY:
+        if day < LAST_DAY:
             future_df_feat = update_lag_features(future_df_feat, day, past_target_values, all_features)
             future_df_feat = update_ma_features(future_df_feat, day, past_target_values, prediction, all_features)
-            # lag_features = [feature for feature in all_features if "LAG" in feature]
-            # for feature in lag_features:
-            #     lag_value = int(feature.split("_")[-1])
-            #     future_df_feat.loc[day+1, feature] = past_target_values[-lag_value]
-
-            # moving_averages_features = [feature for feature in all_features if "MA" in feature]
-            # for feature in moving_averages_features:
-            #     ma_value = int(feature.split("_")[-1])
-            #     last_n_closing_prices = [*past_target_values[-ma_value+1:], prediction]
-            #     next_ma_value = np.mean(last_n_closing_prices)
-            #     future_df_feat.loc[day+1, feature] = next_ma_value
-
-        else:
-            break
     
     future_df_feat["Forecast"] = predictions
     future_df_feat["Forecast"] = future_df_feat["Forecast"].astype('float64')
-    print(future_df_feat)
 
     return future_df_feat
 
@@ -260,8 +244,6 @@ def inference_pipeline(model_type=None, ticker_symbol=None, write_to_table=True)
     PROCESSED_DATA_PATH = config['paths']['processed_data_path']
     OUTPUT_DATA_PATH = config['paths']['output_data_path']
 
-    FORECAST_HORIZON_ADJ = weekend_adj_forecast_horizon(FORECAST_HORIZON, 2)
-
     logger.debug("Loading the featurized dataset...")
     stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["DATE"])
     
@@ -291,14 +273,12 @@ def inference_pipeline(model_type=None, ticker_symbol=None, write_to_table=True)
             future_df = make_future_df(FORECAST_HORIZON, stock_df_feat, features_list)
 
             logger.debug("Predicting...")
-            predictions_df = make_predict(
+            predictions_df = make_iterative_predictions(
                 model=current_prod_model,
-                forecast_horizon=FORECAST_HORIZON_ADJ,
                 future_df=future_df,
                 past_target_values=list(stock_df_feat[TARGET_NAME].values)
             )
             predictions_df['MODEL_TYPE'] = model_type.upper()
-            
             final_predictions_df = pd.concat([final_predictions_df, predictions_df], axis=0)
 
     if write_to_table:

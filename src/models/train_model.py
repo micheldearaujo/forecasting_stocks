@@ -95,6 +95,14 @@ def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker
     return best_params
 
 
+def split_feat_df_Xy(df):
+    """Splits the featurized dataframe to train the ML models."""
+    X_train=df.drop([model_config["TARGET_NAME"], "DATE"], axis=1)
+    y_train=df[model_config["TARGET_NAME"]]
+
+    return X_train, y_train
+
+
 def training_pipeline(tune_params=False, model_type=None, ticker_symbol=None, save_model=False):
     """
     Executes the complete model training pipeline for one or multiple ticker symbols and model types.
@@ -122,7 +130,7 @@ def training_pipeline(tune_params=False, model_type=None, ticker_symbol=None, sa
     # Check the ticker_symbol parameter
     if ticker_symbol:
         ticker_symbol = ticker_symbol.upper() + '.SA'
-        all_ticker_symbols_df = all_ticker_symbols_df[all_ticker_symbols_df["STOCK"] == ticker_symbol]
+        all_ticker_df = all_ticker_df[all_ticker_df["STOCK"] == ticker_symbol]
 
     # Check the model_type parameter
     available_models = model_config['available_models']
@@ -133,10 +141,9 @@ def training_pipeline(tune_params=False, model_type=None, ticker_symbol=None, sa
         available_models = [model_type]
     
     for ticker_symbol in all_ticker_symbols_df["STOCK"].unique():
-        ticker_df_feat = all_ticker_symbols_df[all_ticker_symbols_df["STOCK"] == ticker_symbol].drop("STOCK", axis=1).copy()
+        ticker_df_feat = all_ticker_df[all_ticker_df["STOCK"] == ticker_symbol].drop("STOCK", axis=1).copy()
 
-        X_train=ticker_df_feat.drop([model_config["TARGET_NAME"], "DATE"], axis=1)
-        y_train=ticker_df_feat[model_config["TARGET_NAME"]]
+        X_train, y_train = split_feat_df_Xy(ticker_df_feat)
 
         for model_type in available_models:
             logger.debug(f"Training model [{model_type}] for Ticker Symbol [{ticker_symbol}]...")
