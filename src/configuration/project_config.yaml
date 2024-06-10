@@ -15,14 +15,15 @@ data_config:
     - BRSR6.SA
 
 features_list:
-  - day_of_month
-  - month
-  - day_of_week
-  - week_of_month
-  - quarter
+  - DAY_OF_MONTH
+  - DAY_OF_WEEK
+  - WEEK_OF_MONTH
+  - MONTH
+  - QUARTER
+  - YEAR
+  - CLOSE_LAG_1
+  - CLOSE_LAG_2
   - CLOSE_MA_3
-  - Close_lag_1
-  - Close_lag_2
 
 paths:
   root_data_path: ./data
@@ -36,7 +37,7 @@ model_config:
   optimization_metric: MSE
   model_name: Stock_Predictor
   test_size: 0.2
-  TARGET_NAME: Close
+  TARGET_NAME: CLOSE
   forecast_horizon: 7
   available_models:
     - xgb

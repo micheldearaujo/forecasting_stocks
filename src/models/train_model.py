@@ -7,6 +7,7 @@ import warnings
 import yaml
 import argparse
 import logging
+from joblib import load, dump
 
 import xgboost as xgb
 from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
@@ -37,39 +38,23 @@ def train_model(X_train, y_train, model_type, ticker_symbol, tune_params, save_m
     os.makedirs(MODELS_PATH, exist_ok=True)
     os.makedirs(MODELS_PATH+f'/{model_type}', exist_ok=True)
     base_params = hyperparams['BASE_PARAMS'][model_type]
+    model_file_path = f"{MODELS_PATH}/{model_type}/Model_{ticker_symbol}.model"
 
     if tune_params:
         best_params = tune_params_gridsearch(X_train, y_train, model_type, ticker_symbol)
         base_params.update(best_params)
 
     if model_type == 'xgb':
-
         model = xgb.XGBRegressor(objective='reg:squarederror', **base_params).fit(X_train, y_train)
         if save_model:
-            model.save_model(f"{MODELS_PATH}/{model_type}/Model_{ticker_symbol}.json")
-        return model
+            model.save_model(model_file_path)
 
-    elif model_type == 'et':
+    else:
         model = ExtraTreesRegressor(**base_params).fit(X_train, y_train)
         if save_model:
-            dump(model, f"{MODELS_PATH}/{model_type}/Model_{ticker_symbol}.json")
-        return model
-    
+            dump(model, model_file_path)
 
-def predict(model, X_test, model_type):
-    """Realiza previsões com o modelo XGBoost treinado."""
-
-    return model.predict(X_test)
-
-    # if model_type == 'xgb':
-    #     dtest = xgb.DMatrix(X_test)
-    #     return model.predict(dtest)
-
-    # elif model_type == 'et':
-    #     return model.predict(X_test)
-
-    # elif model_type == 'nbeats':
-    #     return model.predict(X_test)
+    return model
 
 
 def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker_symbol: str, n_splits=3):
@@ -112,7 +97,7 @@ def tune_params_gridsearch(X: pd.DataFrame, y: pd.Series, model_type:str, ticker
     return best_params
 
 
-def model_training_pipeline(tune_params=False, model_type=None, ticker_symbol=None, save_model=False):
+def training_pipeline(tune_params=False, model_type=None, ticker_symbol=None, save_model=False):
     """
     Perform the model training pipeline. Pipeline includes:
         - Model Training on all or specified ticker symbol.
@@ -122,12 +107,12 @@ def model_training_pipeline(tune_params=False, model_type=None, ticker_symbol=No
     logger.debug("Loading the featurized dataset..")
 
     # Load training dataset
-    all_ticker_symbols_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
+    all_ticker_symbols_df = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["DATE"])
 
     # Check the ticker_symbol parameter
     if ticker_symbol:
         ticker_symbol = ticker_symbol.upper() + '.SA'
-        all_ticker_symbols_df = all_ticker_symbols_df[all_ticker_symbols_df["Stock"] == ticker_symbol]
+        all_ticker_symbols_df = all_ticker_symbols_df[all_ticker_symbols_df["STOCK"] == ticker_symbol]
 
     # Check the model_type parameter
     available_models = model_config['available_models']
@@ -137,20 +122,17 @@ def model_training_pipeline(tune_params=False, model_type=None, ticker_symbol=No
     elif model_type:
         available_models = [model_type]
     
-    for ticker_symbol in all_ticker_symbols_df["Stock"].unique():
+    for ticker_symbol in all_ticker_symbols_df["STOCK"].unique():
+        ticker_df_feat = all_ticker_symbols_df[all_ticker_symbols_df["STOCK"] == ticker_symbol].drop("STOCK", axis=1).copy()
 
-        ticker_df_feat = all_ticker_symbols_df[all_ticker_symbols_df["Stock"] == ticker_symbol].drop("Stock", axis=1).copy()
-
-        X_train=ticker_df_feat.drop([model_config["TARGET_NAME"], "Date"], axis=1)
+        X_train=ticker_df_feat.drop([model_config["TARGET_NAME"], "DATE"], axis=1)
         y_train=ticker_df_feat[model_config["TARGET_NAME"]]
 
         for model_type in available_models:
             logger.debug(f"Training model [{model_type}] for Ticker Symbol [{ticker_symbol}]...")
-
             xgb_model = train_model(X_train, y_train, model_type, ticker_symbol, tune_params, save_model)
 
             # learning_curves_fig , feat_importance_fig = extract_learning_curves(xgboost_model)
-
 
 
 # Execute the whole pipeline
@@ -177,5 +159,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     logger.info("Starting the training pipeline...")
-    model_training_pipeline(args.tune, args.model_type, args.ticker_symbol, save_model=False)
+    training_pipeline(args.tune, args.model_type, args.ticker_symbol, save_model=True)
     logger.info("Training Pipeline completed successfully!")

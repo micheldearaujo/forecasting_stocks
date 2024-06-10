@@ -15,39 +15,39 @@ with open("src/configuration/logging_config.yaml", 'r') as f:
 logger = logging.getLogger(__name__)
 
 
-def fetch_stock_price_data(stock_name: str, period: str, interval: str) -> pd.DataFrame:
+def fetch_stock_price_data(ticker: str, period: str, interval: str) -> pd.DataFrame:
     """
     Download data of the closing prices of a given stock and return as Pandas DataFrame.
     
     Parameters:
-        stock_name (str): The ticker symbol of the stock to retrieve data for.
+        ticker (str): The ticker symbol of the stock to retrieve data for.
         period (str): The length of time to retrieve data for, e.g. '1d', '1mo', '3mo', '6mo', '1y', '5y', 'max'.
         interval (str): The frequency of the data, e.g. '1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'.
     
     Returns:
         pandas.DataFrame: The dataframe containing the closing price of a single ticker symbol.
     """
-    logger.debug(f"Downloading data for Ticker: {stock_name}...")
+    logger.debug(f"Downloading data for Ticker: {ticker}...")
 
-    stock_price_df = yfin.Ticker(stock_name).history(period=period, interval=interval)
+    stock_price_df = yfin.Ticker(ticker).history(period=period, interval=interval)
     
-    stock_price_df['Stock'] = stock_name
-    stock_price_df = stock_price_df[['Stock', 'Close']]
+    stock_price_df["Stock"] = ticker
+    stock_price_df = stock_price_df[["Stock", "Close"]]
     stock_price_df = stock_price_df.reset_index()
 
-    stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
-    stock_price_df['Date'] = stock_price_df['Date'].apply(lambda x: x.date())
-    stock_price_df['Date'] = pd.to_datetime(stock_price_df['Date'])
+    stock_price_df["Date"] = pd.to_datetime(stock_price_df["Date"])
+    stock_price_df["Date"] = stock_price_df["Date"].apply(lambda x: x.date())
+    stock_price_df["Date"] = pd.to_datetime(stock_price_df["Date"])
 
     return stock_price_df
 
 
-def make_dataset(stock_name: str, period: str, interval: str, save_to_table: bool = True) -> pd.DataFrame:
+def make_dataset(ticker: str, period: str, interval: str, save_to_table: bool = True) -> pd.DataFrame:
     """
     Creates a dataset of the closing prices of a given stock.
     
     Parameters:
-        stock_name (str): The name of the stock to retrieve data for.
+        ticker (str): The name of the stock to retrieve data for.
         period (str): The length of time to retrieve data for, e.g. '1d', '1mo', '3mo', '6mo', '1y', '5y', 'max'.
         interval (str): The frequency of the data, e.g. '1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'.
     
@@ -56,11 +56,14 @@ def make_dataset(stock_name: str, period: str, interval: str, save_to_table: boo
     """
     raw_df = pd.DataFrame()
     
-    for stock_name in stocks_list:
+    for ticker in stocks_list:
 
-        stock_price_df = fetch_stock_price_data(stock_name=stock_name, period=period, interval=interval)
+        stock_price_df = fetch_stock_price_data(ticker=ticker, period=period, interval=interval)
 
         raw_df = pd.concat([raw_df, stock_price_df], axis=0)
+
+    
+    raw_df.columns = raw_df.columns.str.upper() 
 
     # Save the dataset
     if save_to_table:
