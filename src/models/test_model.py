@@ -10,52 +10,13 @@ from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 from sklearn.metrics import make_scorer, mean_squared_error
 import warnings
 
+from src.visualization.data_viz import visualize_validation_results
+
 warnings.filterwarnings("ignore")
 
 logger = logging.getLogger("model-testing")
 logger.setLevel(logging.INFO)
 
-
-
-def tune_model_hyperparameters(model, X_train, y_train, param_distributions, n_iter=500, cv=5, scoring=None):
-    """
-    Tune model hyperparameters using RandomizedSearchCV.
-    
-    Parameters:
-    - model: The machine learning model to tune.
-    - X_train: Training features.
-    - y_train: Training target variable.
-    - param_distributions: Dictionary with parameters names (`str`) as keys and distributions
-                           or lists of parameters to try.
-    - n_iter: Number of parameter settings that are sampled. n_iter trades off runtime vs quality of the solution.
-    - cv: Cross-validation splitting strategy.
-    - scoring: A single string or callable to evaluate the predictions on the test set. If None, the model's default scorer is used.
-    
-    Returns:
-    - best_model: The tuned model with the best parameters.
-    - results: The results of the RandomizedSearchCV.
-    """
-    
-    # If no custom scoring function is provided, use mean squared error
-    if scoring is None:
-        scoring = make_scorer(mean_squared_error, greater_is_better=False)
-
-    random_search = RandomizedSearchCV(model, param_distributions=param_distributions,
-                                        n_iter=n_iter, cv=cv, scoring=scoring, verbose=1, n_jobs=-1, random_state=42)
-    
-    # Fit RandomizedSearchCV
-    random_search.fit(X_train, y_train)
-    
-    # Best model
-    best_model = random_search.best_estimator_
-    
-    # Results
-    results = {
-        'Best Parameters': random_search.best_params_,
-        'Best Score': random_search.best_score_
-    }
-    
-    return best_model, results
 
 
 def test_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, stock_name: str, tunning: bool = False) -> pd.DataFrame:
@@ -218,7 +179,7 @@ def test_model_one_shot(X: pd.DataFrame, y: pd.Series, forecast_horizon: int, st
     return pred_df, X_testing_df
 
 
-def model_testing_pipeline(tunning=False):
+def model_evaluation_pipeline(tunning=False):
 
     logger.debug("Loading the featurized dataset..")
     stock_df_feat_all = pd.read_csv(os.path.join(PROCESSED_DATA_PATH, 'processed_stock_prices.csv'), parse_dates=["Date"])
